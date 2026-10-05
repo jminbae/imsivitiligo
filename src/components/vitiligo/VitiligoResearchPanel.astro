@@ -1,0 +1,620 @@
+---
+import { localeOf, localeUrl } from '../../lib/i18n';
+/* 이 페이지의 언어. 메뉴 데이터가 프론트매터 앞쪽에 있어 **맨 위**에 둔다.
+   'ko' 를 박지 않는다 — 2단계에서 언어가 늘어도 이 파일은 손대지 않는다. 정본: src/lib/i18n.ts */
+const lang = localeOf(Astro.currentLocale);
+/**
+ * 백반증 연구 소개 패널.
+ *
+ * 모든 논문은 서버에서 렌더해 검색·접근성 표면을 보존한다. JavaScript와
+ * 모든 카드의 문서 높이를 유지하고 화면 근처 카드에만 공용 등장 효과를 적용한다.
+ * 효과 초기화가 실패해도 논문 목록 전체는 그대로 읽을 수 있다.
+ */
+import { getResearchPapers } from '../../lib/repo';
+import ResearchModal from './ResearchModal.astro';
+
+const papers = await getResearchPapers();
+---
+
+<section class="research-stage" data-research-stage aria-labelledby="research-title">
+  <div class="wrapper research-inner">
+    <header class="research-header" data-research-reveal>
+      <div class="research-heading-copy">
+        <h2 id="research-title" data-research-list-focus tabindex="-1">힐하우스 백반증 연구 소개</h2>
+        <p class="vt-left-copy">
+          환자의 작은 질문 하나에서 백반증 연구가 시작되었습니다.<br />
+          세계의 동료들과 긴 고민 끝에 완성한 205편의 논문 중 대표 연구를 소개합니다.
+        </p>
+      </div>
+
+      {/* 숫자는 205+ 다 — 원장 확정 2026-08-07 "연구 논문 수는 205편+로 하자. 그 중에 주요
+          연구를 소개하는 것으로". 위 본문(205편)과 마크가 같은 수를 말한다.
+          전달본 워드마크 + 기존 205plus 숫자를 합성한 파일이다(자세한 사유는
+          src/pages/vitiligo/index.astro 의 같은 마크 주석 참조). */}
+      <img
+        src="/images/vitiligo/about/research-205-plus.svg"
+        alt="Vitiligo Research 205+"
+        width="602"
+        height="240"
+        class="research-wordmark"
+        loading="eager"
+        decoding="async"
+      />
+    </header>
+
+    <nav class="research-paths" aria-labelledby="research-paths-title" data-research-reveal>
+      <div class="research-paths-heading">
+        <p>Research Navigator</p>
+        <h2 id="research-paths-title" class="research-added-title">궁금한 질문부터 연구를 찾아보세요</h2>
+      </div>
+      <ol>
+        <li>
+          <span aria-hidden="true">01</span>
+          <h3>진단과 예측</h3>
+          <p>상태와 치료 반응을 더 객관적으로 살피기 위한 바이오마커 연구입니다.</p>
+          <a href={localeUrl(lang, 'vitiligo/research/vitiligo-sox10-lamin-biomarker/')}>SOX10·Lamin 연구 보기 <span aria-hidden="true">↗</span></a>
+        </li>
+        <li>
+          <span aria-hidden="true">02</span>
+          <h3>치료가 작동하는 원리</h3>
+          <p>치료법별 분자 기전을 정리해 치료 조합의 근거를 살핀 연구입니다.</p>
+          <a href={localeUrl(lang, 'vitiligo/research/vitiligo-treatment-molecular-mechanism-review/')}>치료 기전 연구 보기 <span aria-hidden="true">↗</span></a>
+        </li>
+        <li>
+          <span aria-hidden="true">03</span>
+          <h3>보이지 않는 부담</h3>
+          <p>노출되지 않는 부위의 백반증도 삶에 미칠 수 있는 영향을 살핀 연구입니다.</p>
+          <a href={localeUrl(lang, 'vitiligo/research/vitiligo-non-exposed-hidden-burden/')}>삶의 질 연구 보기 <span aria-hidden="true">↗</span></a>
+        </li>
+      </ol>
+    </nav>
+
+    <div class="research-feed-shell">
+      <div aria-hidden="true" class="research-feed-background"></div>
+      <img class="research-desktop-mark" src="/images/vitiligo/research/205plus.svg" alt="205+" width="488" height="171" decoding="async" />
+
+      <div
+        id="vt-research-feed"
+        class="research-feed"
+      >
+        <ol class="research-grid" data-research-items>
+          {
+            papers.map((p) => (
+                <li data-research-item data-research-reveal>
+                  <article class="research-card">
+                    <p class="research-card-number">NO. {String(p.no).padStart(2, '0')}</p>
+                    <h3 class="research-card-title">
+                      <a
+                        href={localeUrl(lang, `vitiligo/research/${p.slug}/`)}
+                        data-research-modal-trigger
+                        class="stretched-link decoration-1 underline-offset-4 focus-visible:underline"
+                      >
+                        {p.title}
+                      </a>
+                    </h3>
+                    <p class="research-card-summary">{p.summary}</p>
+                    <p class="research-card-journal">
+                      {p.journal}
+                      {p.year ? ` (${p.year})` : ''}
+                    </p>
+                  </article>
+                </li>
+            ))
+          }
+        </ol>
+
+      </div>
+    </div>
+  </div>
+
+  {/* 발표 고유번호는 유지하면서 노출 순서만 매 방문 섞는 기존 편집 원칙을 보존한다. */}
+  <script is:inline>
+    (function () {
+      try {
+        var list = document.querySelector('#vt-research-feed [data-research-items]');
+        if (!list) return;
+        var rows = Array.prototype.slice.call(list.children);
+        for (var i = rows.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var temporary = rows[i];
+          rows[i] = rows[j];
+          rows[j] = temporary;
+        }
+        var intent = new URL(window.location.href).searchParams.get('research');
+        if (intent && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(intent)) {
+          /* 클라이언트 스크립트라 Astro 변수를 못 쓴다 — <html data-locale>(Base.astro)에서 읽는다.
+             'ko' 를 박지 않는다. 2026-08-09 /ko/ 이관. */
+          var localeBase = '/' + (document.documentElement.dataset.locale || 'ko');
+          var intentHref = localeBase + '/vitiligo/research/' + intent + '/';
+          var intentIndex = rows.findIndex(function (row) {
+            var trigger = row.querySelector('[data-research-modal-trigger]');
+            return trigger && trigger.getAttribute('href') === intentHref;
+          });
+          if (intentIndex > 0) rows.unshift(rows.splice(intentIndex, 1)[0]);
+        }
+        rows.forEach(function (row) {
+          list.appendChild(row);
+        });
+      } catch (error) {}
+    })();
+  </script>
+
+  <script>
+    import { EDITORIAL_REVEAL_TRIGGER, initEditorialReveal } from '../../lib/editorialReveal.mjs';
+
+    function initResearchPanel(feed: HTMLElement) {
+      if (feed.dataset.researchReady === 'true') return;
+      const stage = feed.closest<HTMLElement>('[data-research-stage]');
+      const list = feed.querySelector<HTMLElement>('[data-research-items]');
+      if (!stage || !list) return;
+      const items = Array.from(list.querySelectorAll<HTMLElement>('[data-research-item]'));
+      if (!items.length) return;
+      feed.dataset.researchReady = 'true';
+
+      const targets = Array.from(stage.querySelectorAll<HTMLElement>('[data-research-reveal]'));
+      const visited = new Set<HTMLElement>();
+      const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const masonryGap = 18;
+      let frame = 0;
+      let needsLayout = false;
+      let disposed = false;
+      let revealFailed = false;
+      let active: HTMLElement[] = [];
+      let cleanupReveal = () => {};
+      let resizeObserver: ResizeObserver | undefined;
+
+      const showAll = () => {
+        cleanupReveal();
+        cleanupReveal = () => {};
+        active = [];
+        stage.classList.remove('editorial-reveal-ready');
+        targets.forEach((element) => {
+          element.hidden = false;
+          element.classList.remove('editorial-reveal-item', 'is-visible');
+        });
+      };
+
+      const layoutMasonry = () => {
+        // All records retain their document height: reload/fast-scroll never depends on a sentinel.
+        items.forEach((element) => {
+          const card = element.querySelector<HTMLElement>('.research-card');
+          if (!card) return;
+          const span = Math.ceil(card.getBoundingClientRect().height + masonryGap);
+          element.style.setProperty('--research-masonry-span', String(span));
+        });
+        list.classList.add('research-masonry-ready');
+      };
+
+      const updateViewport = () => {
+        if (disposed) return;
+        if (motion.matches || revealFailed || !('IntersectionObserver' in window)) {
+          showAll();
+          return;
+        }
+        try {
+          const trigger = window.innerHeight * EDITORIAL_REVEAL_TRIGGER.initialViewportRatio;
+          // The scroll pass also opens cards if an IO notification was missed.
+          for (const element of targets) {
+            if (element.getBoundingClientRect().top < trigger) {
+              visited.add(element);
+              if (active.includes(element)) element.classList.add('is-visible');
+            }
+          }
+          const pending = active.some((element) => {
+            const rect = element.getBoundingClientRect();
+            return !element.classList.contains('is-visible') && rect.bottom > 0
+              && rect.top < window.innerHeight * 2;
+          });
+          if (pending) return;
+          cleanupReveal();
+          cleanupReveal = () => {};
+          active = targets.filter((element) => {
+            if (visited.has(element)) return false;
+            const rect = element.getBoundingClientRect();
+            return rect.bottom > 0 && rect.top < window.innerHeight * 2;
+          }).slice(0, 12);
+          active.forEach((element, index) => {
+            visited.add(element);
+            element.style.setProperty('--editorial-reveal-stagger', `${index * 45}ms`);
+          });
+          // Reuse the site's existing motion; observe only the approaching screenful.
+          cleanupReveal = initEditorialReveal({ root: stage, targets: active });
+        } catch {
+          revealFailed = true;
+          showAll();
+        }
+      };
+      const schedule = (remeasure = false) => {
+        if (disposed) return;
+        needsLayout ||= remeasure;
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          if (disposed) return;
+          try {
+            if (needsLayout) layoutMasonry();
+            needsLayout = false;
+            updateViewport();
+          } catch {
+            // A layout/observer failure must leave the complete server-rendered list usable.
+            revealFailed = true;
+            list.classList.remove('research-masonry-ready');
+            showAll();
+          }
+        });
+      };
+      const onScroll = () => schedule();
+      const onResize = () => schedule(true);
+      const cleanup = () => {
+        disposed = true;
+        cancelAnimationFrame(frame);
+        resizeObserver?.disconnect();
+        showAll();
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onResize);
+        motion.removeEventListener('change', onResize);
+        document.removeEventListener('astro:before-swap', cleanup);
+        delete feed.dataset.researchReady;
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onResize, { passive: true });
+      motion.addEventListener('change', onResize);
+      document.addEventListener('astro:before-swap', cleanup, { once: true });
+      try {
+        if ('ResizeObserver' in window) {
+          // One container observer handles responsive width changes; do not observe 78 cards.
+          let lastWidth = -1;
+          resizeObserver = new ResizeObserver((entries) => {
+            const width = entries[0]?.contentRect.width;
+            if (width !== undefined && width !== lastWidth) {
+              lastWidth = width;
+              schedule(true);
+            }
+          });
+          resizeObserver.observe(list);
+        }
+        layoutMasonry();
+        updateViewport();
+        document.fonts?.ready.then(() => schedule(true));
+      } catch {
+        revealFailed = true;
+        list.classList.remove('research-masonry-ready');
+        showAll();
+      }
+    }
+
+    function initResearchPanels() {
+      document.querySelectorAll<HTMLElement>('#vt-research-feed').forEach(initResearchPanel);
+    }
+    initResearchPanels();
+    document.addEventListener('astro:page-load', initResearchPanels);
+    window.addEventListener('pageshow', initResearchPanels);
+  </script>
+</section>
+
+<ResearchModal />
+
+<style>
+  .research-desktop-mark { display: none; }
+  @media (min-width: 769px) {
+    /* Keep the existing header/grid geometry; only replace its desktop artwork.
+       Figma 753:3754: 487.535 × 170.535, bottom 15px below the grid top. */
+    .research-wordmark { visibility: hidden; }
+    .research-desktop-mark {
+      display: block;
+      position: absolute;
+      z-index: 0;
+      right: 4.6596%;
+      top: -155.535px;
+      width: min(487.535px, 40%);
+      height: 170.535px;
+      object-fit: contain;
+      object-position: right bottom;
+      pointer-events: none;
+    }
+  }
+  .research-stage {
+    position: relative;
+    isolation: isolate;
+    margin-inline: calc(50% - 50vw);
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  .research-inner {
+    --research-bottom-space: 180px;
+    position: relative;
+    z-index: 1;
+    padding-block: 104px 180px;
+  }
+
+  .research-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 602px);
+    align-items: start;
+    gap: 64px;
+  }
+
+  .research-heading-copy {
+    padding-top: 8px;
+  }
+
+  /* 헤드라인·리드 — 백반증 공통 규격 토큰(src/styles/vitiligo.css)에서 받는다.
+     제목은 PC 현행값(40/60)이 토큰 PC 기본값과 정확히 같아 브레이크포인트 구분 없이 토큰만
+     읽으면 되고, 모바일에서 자동으로 28/40 이 된다.
+     ⚠️ 리드의 line-height 31px 만은 예외로 남긴다 — 토큰 PC 기본값은 32 라 그대로 읽으면
+        PC 가 1px 움직인다(이번 지시는 모바일 전용). 모바일 26 은 아래 미디어쿼리에서 토큰으로.
+     ⚠️ 제목↔리드 간격 16px(PC)도 예외다 — 토큰(--vt-gap-title-body, PC 40)과 다르다. */
+  .research-heading-copy h2 {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: var(--vt-title-size, 40px);
+    font-weight: 600;
+    line-height: var(--vt-title-leading, 60px);
+    letter-spacing: -0.02em;
+    word-break: keep-all;
+  }
+
+  .research-heading-copy p {
+    margin: 16px 0 0;
+    color: var(--color-ink);
+    font-size: var(--vt-body-size, 18px);
+    font-weight: 400;
+    line-height: 31px;
+    word-break: keep-all;
+  }
+
+  .research-wordmark {
+    display: block;
+    width: 602px;
+    max-width: 100%;
+    height: auto;
+    justify-self: end;
+  }
+
+  .research-feed-shell {
+    position: relative;
+    isolation: isolate;
+    margin-top: 76px;
+  }
+
+  .research-feed-background {
+    position: absolute;
+    top: 0;
+    right: calc(50% - 50vw);
+    bottom: calc(-1 * var(--research-bottom-space));
+    left: calc(50% - 50vw);
+    background: radial-gradient(37.6% 45.86% at 100% 0%, #C3DEF1 0%, rgba(195, 222, 241, 0) 100%), radial-gradient(37.6% 45.86% at 0% 100%, #C3DEF1 0%, rgba(195, 222, 241, 0) 100%), #FFFFFF;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 112px);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 112px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .research-feed {
+    position: relative;
+    z-index: 1;
+    overflow-anchor: none;
+  }
+
+  .research-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 335px));
+    justify-content: center;
+    align-items: start;
+    gap: 18px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-anchor: none;
+  }
+
+  .research-grid.research-masonry-ready {
+    grid-auto-rows: 1px;
+    row-gap: 0;
+  }
+
+  .research-grid > li {
+    width: 335px;
+    max-width: 100%;
+    align-self: start;
+  }
+
+  .research-grid.research-masonry-ready > li {
+    grid-row-end: span var(--research-masonry-span, 1);
+  }
+
+  .research-card {
+    position: relative;
+    width: 335px;
+    max-width: 100%;
+    height: auto;
+    padding: 40px 25px 30px;
+    overflow: hidden;
+    color: var(--color-ink);
+    background: #FFFFFF;
+    /* 박스 모서리 — 공통 규격 토큰(PC 20 / 모바일 16) */
+    border-radius: var(--vt-radius, 20px);
+    box-shadow: 0px 6px 30px rgba(157, 173, 185, 0.3);
+    /* 모션 사다리(원장 지시 2026-09-04 「이런 값도 전체적으로 일관성이 있으면 좋겠어」).
+       한 규칙 안에 이동 320ms 와 색·그림자 280ms 가 섞여 있어 40ms 차이로 따로 끝났다.
+       역할로 가른다 — 카드가 올라가는 것(transform)은 --motion-lift(0.45s),
+       색·그림자만 바뀌는 것은 --motion-tint(0.2s). 곡선 리터럴
+       cubic-bezier(0.22, 1, 0.36, 1) 은 --ease-editorial 과 값이 같아 그대로 토큰이 된다. */
+    /* ⚠️ 한 손짓(hover)에 딸린 변화는 **같은 시간**을 쓴다 — 색만 먼저 끝나면 카드가 뒤늦게
+       서는 「따로 노는」 느낌이 된다. 기준은 원장이 승인한 PromiseBand(transform·box-shadow 를
+       한 토큰으로 묶는다). --motion-tint 는 **움직이지 않는** 것(링크·칩·탭)에만 쓴다. */
+    transition:
+      background-color var(--motion-lift) var(--ease-editorial),
+      transform var(--motion-lift) var(--ease-editorial),
+      box-shadow var(--motion-lift) var(--ease-editorial);
+  }
+
+  .research-card-number,
+  .research-card-title,
+  .research-card-summary,
+  .research-card-journal {
+    margin-top: 0;
+    /* 카드 배경과 같은 박자로 뒤집혀야 하는 색 — --motion-tint(종전 280ms ease). */
+    transition: color var(--motion-tint) var(--ease-editorial);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .research-card:hover {
+      background: #6899C0;
+      transform: translateY(-4px);
+      box-shadow: 0px 12px 36px rgba(120, 145, 164, 0.34);
+    }
+
+    .research-card:hover .research-card-number {
+      color: #A5D8F0;
+    }
+
+    .research-card:hover .research-card-title,
+    .research-card:hover .research-card-summary {
+      color: #FFFFFF;
+    }
+
+    .research-card:hover .research-card-journal {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .research-card-number {
+    margin-bottom: 15px;
+    color: #6899C0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 17px;
+  }
+
+  .research-card-title {
+    margin-bottom: 15px;
+    color: var(--color-ink);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 28px;
+    letter-spacing: -0.015em;
+    word-break: keep-all;
+  }
+
+  .research-card-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .research-card-title a:focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+
+  .research-card-summary {
+    margin-bottom: 15px;
+    color: var(--color-ink);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 24px;
+    word-break: keep-all;
+  }
+
+  .research-card-journal {
+    margin-bottom: 0;
+    color: #A4A9AD;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+  }
+
+  @media (min-width: 768px) {
+    .research-inner {
+      --research-bottom-space: 220px;
+      padding-top: 124px;
+      padding-bottom: 220px;
+    }
+
+    .research-grid {
+      grid-template-columns: repeat(2, 335px);
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .research-grid {
+      grid-template-columns: repeat(4, 335px);
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .research-header {
+      grid-template-columns: 1fr;
+      gap: 42px;
+    }
+
+    .research-wordmark {
+      justify-self: start;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .research-inner {
+      --research-bottom-space: 150px;
+      padding-block: 72px 150px;
+    }
+
+    .research-heading-copy {
+      padding-top: 0;
+    }
+
+    /* 제목(28/40)은 위 기본 선언이 토큰으로 이미 모바일 값을 받는다 — 여기서 다시 적지 않는다.
+       (종전 30/44 는 공통 규격 확정 전 값이라 폐기 — 원장 확정 2026-08-07) */
+    .research-heading-copy p {
+      /* 제목↔리드 간격은 이 섹션 전용 예외로 유지(PC 16 / 모바일 12) — 공통 규격 30 이 아니다.
+         크기·행간만 공통 규격(16/26)으로 맞춘다. */
+      margin-top: 12px;
+      line-height: var(--vt-body-leading, 26px);
+    }
+
+    .research-heading-copy br {
+      display: none;
+    }
+
+    .research-feed-shell {
+      margin-top: 58px;
+    }
+
+    .research-card {
+      padding: 34px 23px 28px;
+    }
+
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .research-card,
+    .research-card-number,
+    .research-card-title,
+    .research-card-summary,
+    .research-card-journal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+  .research-paths { display: grid; grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr); gap: clamp(3rem, 8vw, 8rem); margin: 0 0 110px; padding-top: 42px; border-top: 1px solid rgba(20, 30, 40, .3); color: #141e28; }
+  .research-paths-heading > p { color: #3f6f90; font-size: 15px; font-weight: 700; letter-spacing: .06em; }
+  .research-paths-heading h2 { margin-top: 14px; max-width: 25rem; font-size: clamp(28px, 3vw, 40px); font-weight: 600; line-height: 1.45; letter-spacing: -.025em; word-break: keep-all; }
+  .research-paths-heading .research-added-title { color: #365f78; }
+  .research-paths ol { border-top: 1px solid rgba(20, 30, 40, .24); }
+  .research-paths li { display: grid; grid-template-columns: 44px minmax(0, .75fr) minmax(0, 1.25fr); column-gap: 18px; align-items: baseline; padding-block: 24px; border-bottom: 1px solid rgba(20, 30, 40, .24); }
+  .research-paths li > span { color: #3f6f90; font-size: 12px; font-weight: 700; }
+  .research-paths h3 { font-size: 18px; font-weight: 600; line-height: 1.5; }
+  .research-paths li > p { color: #5d666d; font-size: 14px; line-height: 1.75; word-break: keep-all; }
+  .research-paths a { grid-column: 3; margin-top: 12px; color: #365f78; font-size: 13px; font-weight: 600; }
+  .research-paths a:hover,
+  .research-paths a:focus-visible { text-decoration: underline; text-underline-offset: 5px; }
+  @media (max-width: 767px) {
+    .research-paths { grid-template-columns: 1fr; gap: 38px; margin-bottom: 72px; padding-top: 32px; }
+    .research-paths li { grid-template-columns: 34px 1fr; }
+    .research-paths li > p,
+    .research-paths a { grid-column: 2; }
+    .research-paths li > p { margin-top: 8px; }
+  }
+</style>

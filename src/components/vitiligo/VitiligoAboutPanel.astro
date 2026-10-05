@@ -1,0 +1,1813 @@
+---
+/**
+ * VitiligoAboutPanel — /vitiligo/about/ (백반증이란?) DB 콘텐츠 기반 소개 섹션 + 공용 칼럼 섹션.
+ * 참고 시안: 전달용/00 예시이미지/250804-백반증-백반증이란.png
+ * §1~3·§6~7은 이 파일에 격리하고, §4·§5의 기존 카드 인터랙션만 공용 컴포넌트를 재사용한다.
+ * 진단 6개·칼럼·의사 바이라인은 JSON/저장소 데이터를 그대로 사용한다.
+ * 섹션 등장 모션은 기본 렌더가 보이는 progressive enhancement 방식이며 reduced-motion을 따른다.
+ * ※ 연구 소개 섹션(구 §8)은 원장 지시 2026-08-07 로 이 페이지에서 삭제됐다.
+ *   같은 내용은 /vitiligo/ 메인과 /vitiligo/research/ 가 계속 제공한다.
+ */
+import VtaTypeCardsSection from './VtaTypeCardsSection.astro';
+import PagingIndicator from '../ui/PagingIndicator.astro';
+import VitiligoRelatedColumns from './VitiligoRelatedColumns.astro';
+import VitiligoFloatingField from './VitiligoFloatingField.astro';
+import type { VitiligoSection, VitiligoBlock } from '../../lib/types';
+
+interface Props {
+  section: VitiligoSection;
+  /** 진입 URL의 패널인지 — 진입 애니메이션은 첫 표시 패널에만 */
+  initial: boolean;
+}
+
+const { section, initial } = Astro.props;
+
+// about 콘텐츠는 저장소 어댑터가 빌드 시 검증한 DB 값만 렌더한다.
+const content = section.aboutContent;
+const aboutEyebrow = '힐하우스피부과 백반증이란?';
+const aboutImages = '/images/vitiligo/about';
+if (!content) throw new Error('Vitiligo about content is required');
+const b = section.blocks;
+const causes = b[2] as Extract<VitiligoBlock, { type: 'deflist' }>;
+const koebner = b[3] as Extract<VitiligoBlock, { type: 'callout' }>;
+const types = b[4] as Extract<VitiligoBlock, { type: 'type-picker' }>;
+const faces = b[5] as Extract<VitiligoBlock, { type: 'face-picker' }>;
+const myths = b[6] as Extract<VitiligoBlock, { type: 'faq' }>;
+const diagTools = b[8] as Extract<VitiligoBlock, { type: 'faq' }>;
+const diagNotes = b.slice(9) as Extract<VitiligoBlock, { type: 'callout' }>[];
+const diagItems = [
+  ...diagTools.items.map((it) => ({ term: it.q, desc: it.a })),
+  ...diagNotes.map((c) => ({ term: c.label, desc: c.body_md })),
+];
+const faceItems = faces.items;
+
+/* §6 FAQ 배치 — 이 행 구성·PC 오프셋(dy)·모바일 좌/우 오프셋(mo)은 no-JS·reduced-motion
+   정적 폴백 전용. JS 가 살아 있으면 스크립트가 필드를 자유 부유 모드로 전환해 방문마다
+   랜덤 산포한다(원장 지시 2026-08-01). fx·fy = PC 마우스 패럴럭스 계수(±10px 이내, 유지).
+   i = myths.items 인덱스. */
+const faqRows = [
+  [
+    { i: 1, dy: 24, fx: -0.7, fy: 0.6, mo: 'l' }, // 불치병이다
+    { i: 3, dy: 64, fx: 0.9, fy: -0.5, mo: 'r' }, // 유전병이다
+    { i: 4, dy: 0, fx: 0.5, fy: 0.9, mo: 'l' }, // 전염된다
+  ],
+  [
+    { i: 0, dy: 0, fx: -0.9, fy: -0.6, mo: 'r' }, // 단순한 미용 문제다
+  ],
+  [
+    { i: 2, dy: 0, fx: 0.6, fy: -0.8, mo: 'l' }, // 한번 생기면 계속 번진다
+    { i: 5, dy: 36, fx: -0.5, fy: 0.8, mo: 'r' }, // 피해야 할 음식이 있다
+  ],
+];
+
+---
+
+<div class:list={['vta-root', initial && 'animate-fade-up']} data-vta-about-root>
+  <section class="vta-section vta-s1 bleed vta-reveal" data-vta-about-section="1">
+    <div class="wrapper vta-layer">
+      <div class="vta-split-head">
+        <div>
+          <p class="vta-kicker">{aboutEyebrow}</p>
+          <h2 class="vta-title vta-title-s1">
+            <span class="font-semibold">{content.intro.titleLines[0]}</span><br />
+            <span class="font-normal">{content.intro.titleLines[1]}</span>
+          </h2>
+        </div>
+        <p class="vta-body vta-s1-body vt-left-copy">{content.intro.body}</p>
+      </div>
+      <div class="vta-photo-strip" data-vta-photo-strip>
+        {
+          content.intro.images.map((image, index) => (
+            <button
+              type="button"
+              class="vta-photo"
+              data-vta-photo
+              aria-label={`${index + 1}번째 사진, ${image.alt} 확대 보기`}
+              aria-pressed="false"
+            >
+              <img
+                src={image.src}
+                alt={image.alt}
+                data-vt-hero-target={index === 0 ? true : undefined}
+                width="350"
+                height="300"
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="vta-ph-ov" aria-hidden="true" />
+            </button>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="vta-section vta-s2 bleed" data-vta-about-section="2">
+    <picture class="vta-s2-picture">
+      <source media="(max-width: 767px)" srcset="/images/vitiligo/about/04-2-백반증이란-mo.png" />
+      <img class="vta-s2-bg" src="/images/vitiligo/about/04-2-백반증이란.png" alt={content.earlySigns.background.alt}
+        width="2560" height="800" loading="lazy" decoding="async" />
+    </picture>
+    <div class="wrapper vta-reveal">
+      <div class="vta-half-copy">
+        <p class="vta-kicker vta-kicker-white">{aboutEyebrow}</p>
+        <h2 class="vta-title vta-s2-title">{content.earlySigns.titleLines.map((line, i) => <>{i > 0 && <br />}{line}</>)}</h2>
+        <p class="vta-body vta-s2-copy vt-left-copy" data-line-count={content.earlySigns.bodySegments.length}>
+          {content.earlySigns.bodySegments.map((line) => <span>{line.map((part) => part.strong ? <strong>{part.text}</strong> : part.text)}</span>)}
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="vta-section vta-differentiation bleed vta-reveal" data-vta-about-section="3">
+    <div class="wrapper vta-differentiation-grid">
+      <header>
+        <p class="vta-kicker">{aboutEyebrow}</p>
+        <h2 class="vta-title">{content.differentiation.titleLines.map((line) => <span>{line}</span>)}</h2>
+      </header>
+      <div>
+        <ul class="vta-check-list">
+          {content.differentiation.items.map((item) => <li>
+            <img src={content.differentiation.checkIconSrc} alt="" width="30" loading="lazy" />
+            <p>{item}</p>
+          </li>)}
+        </ul>
+        <aside class="vta-notice">
+          <img src={`${aboutImages}/svg/notice-light.svg`} alt="" width="32" loading="lazy" />
+          <p>{content.differentiation.noticeLines.map((line, i) => <>{i > 0 && ' '}<span>{line}</span></>)}</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="vta-section vta-s3 bleed vta-reveal" data-vta-about-section="4">
+    <div class="wrapper">
+      <header class="vta-centered-head">
+        <p class="vta-kicker">{aboutEyebrow}</p>
+        <h2 class="vta-title">{content.causes.titleLines.join(" ")}</h2>
+        <p class="vta-body">
+          {content.causes.leadLines.map((line, i) => <>{i > 0 && <br />}{line}</>)}
+        </p>
+      </header>
+      <div class="vta-cause-grid" id="vta-causes-rail">
+        {
+          causes.items.map((it, i) => (
+            <article class="vta-cause-card" data-vta-slide>
+              <span class="vta-cause-icon" aria-hidden="true">
+                <img src={content.causes.icons[it.term]} alt="" width="84" loading="lazy" decoding="async" />
+              </span>
+              <div>
+                <h3>
+                  {it.term}
+                  {it.term === '외부 자극' && <span> ({koebner.label})</span>}
+                </h3>
+                <p>{it.desc}</p>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+      <div class="vta-pager">
+        <PagingIndicator total={causes.items.length} controls="vta-causes-rail" scrollRailId="vta-causes-rail" slideSelector="[data-vta-slide]">
+          <span class="vta-pager-count" aria-hidden="true"><span data-paging-current>1</span> / <span data-paging-total>{causes.items.length}</span></span>
+          <span class="sr-only" role="status" aria-live="polite" data-paging-status></span>
+        </PagingIndicator>
+      </div>
+    </div>
+  </section>
+
+  <div class="vta-section-wrap vta-s4-wrap vta-reveal" data-vta-about-section="5">
+    <VtaTypeCardsSection no={5} hideBadge aboutLayout="body"
+      kicker={aboutEyebrow} title={content.types.titleLines.join(' ')} intro={content.types.leadLines}
+      vividFigures items={types.items.map((it, i) => ({ ...it, eyebrow: `SUBTYPE ${String(i + 1).padStart(2, '0')}` }))} />
+  </div>
+
+  <div class="vta-s5-wrap bleed vta-reveal" data-vta-about-section="6">
+    <VtaTypeCardsSection no={6} hideBadge aboutLayout="face"
+      kicker={aboutEyebrow} title={content.faces.titleLines.join(' ')} intro={content.faces.leadLines}
+      items={faceItems.map((it, i) => ({ ...it, term: it.ko, eyebrow: `SUBTYPE ${String(i + 1).padStart(2, '0')}` }))} />
+  </div>
+
+  <section class="vta-section vta-goals bleed vta-reveal" data-vta-about-section="7"
+    style={{ backgroundImage: `url("${aboutImages}/04-7-백반증치료의 목표.png")` }}>
+    <div class="wrapper">
+      <header class="vta-centered-head">
+        <p class="vta-kicker">{aboutEyebrow}</p>
+        <h2 class="vta-title">{content.goals.titleLines.join(' ')}</h2>
+        <p class="vta-body">{content.goals.leadLines.join(' ')}</p>
+      </header>
+      <div class="vta-goal-grid" id="vta-goals-rail">
+        {content.goals.items.map((item, i) => <article class="vta-goal-card" data-vta-slide>
+          <div class="vta-goal-image">
+            <img src={`${aboutImages}/04-7-백반증이란-${i + 1}.png`} alt={item.image?.alt ?? item.title} width="1200" height="800" loading="lazy" decoding="async" />
+          </div>
+          <div class="vta-goal-copy">
+            <span class="vta-goal-number" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+            <h3>{item.title}</h3>
+            <p>{item.bodyLines.map((line) => <span>{line}</span>)}</p>
+          </div>
+        </article>)}
+      </div>
+      <div class="vta-pager">
+        <PagingIndicator total={content.goals.items.length} controls="vta-goals-rail" scrollRailId="vta-goals-rail" slideSelector="[data-vta-slide]">
+          <span class="vta-pager-count" aria-hidden="true"><span data-paging-current>1</span> / <span data-paging-total>{content.goals.items.length}</span></span>
+          <span class="sr-only" role="status" aria-live="polite" data-paging-status></span>
+        </PagingIndicator>
+      </div>
+      <aside class="vta-goal-notice">
+        <h3>{content.goals.notice.title}</h3>
+        <p>{content.goals.notice.bodyLines.map((line) => <span>{line}</span>)}</p>
+      </aside>
+    </div>
+  </section>
+
+  {/* ═══ §6 백반증의 오해와 진실 — #F4F5F6 풀블리드, 둥실 FAQ 박스(클릭 확장·× 닫기) ═══ */}
+  <section class="vta-section vta-s6 bleed vta-reveal" data-vta-about-section="8">
+    <div class="wrapper">
+      <div class="text-center">
+        <p class="vta-kicker">{aboutEyebrow}</p>
+        <h2 class="vta-title break-keep">{content.myths.titleLines.join(" ")}</h2>
+      </div>
+      <VitiligoFloatingField mode="free" class="vta-faq-field mt-[60px] max-md:mt-10">
+        {
+          faqRows.map((row, ri) => (
+            <div class:list={['vta-faq-row', `vta-faq-row-${ri + 1}`]}>
+              {row.map((f) => {
+                const item = myths.items[f.i]!;
+                return (
+                  <div
+                    class:list={['vta-faq-item', f.mo === 'l' ? 'vta-mo-l' : 'vta-mo-r']}
+                    style={`--dy:${f.dy}px`}
+                  >
+                    <div class="vta-faq-par" data-vta-par data-fx={f.fx} data-fy={f.fy}>
+                      <div class="vta-faq-box" data-vta-faq>
+                        <button
+                          type="button"
+                          id={`vta-faq-t-${f.i}`}
+                          class="vta-faq-toggle"
+                          aria-expanded="true"
+                          aria-controls={`vta-faq-p-${f.i}`}
+                        >
+                          <span class="vta-faq-q">{item.q}</span>
+                          <span class="vta-faq-x" aria-hidden="true">
+                            <img src="/images/vitiligo/about/myths-close.svg" alt="" width="23" height="23" />
+                          </span>
+                        </button>
+                        <div
+                          class="vta-faq-a"
+                          id={`vta-faq-p-${f.i}`}
+                          data-vta-faq-panel
+                          role="region"
+                          aria-labelledby={`vta-faq-t-${f.i}`}
+                        >
+                          <div class="vta-faq-a-in">
+                            <p class="vta-body break-keep">{item.a}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        }
+      </VitiligoFloatingField>
+    </div>
+  </section>
+
+  {/* ═══ §7 진단(07) — 구 G·H 통합(원장 지시 2026-07-31). 레이아웃 = 연구 소개 탭
+      (VitiligoResearchPanel) 문법: PC 좌 [뱃지 07 + 헤드라인 + 서브카피] sticky
+      (top = 헤더 + 탭 바 + 여백 — research 와 동일 공식) | 우 진단 도구 리스트 7,
+      모바일 상하 스택. 우측 리스트 상단 = 제목 상단 정렬(§1 관용구: 뱃지 25px + 8px 보정).
+      텍스트는 vitiligo_sections.json 원문 그대로(신규 문구 없음).
+      우측 리스트 = 배타 아코디언(원장 지시 2026-08-01 "닫혀 있고, 클릭하면 열리고, 다른 거
+      클릭하면 나머진 닫히고") — 공용 FaqAccordion 관용구(grid-rows 0fr↔1fr·aria-expanded·
+      셰브론 180° 회전) 이식, 리스트 자체 스타일(research 리듬·번호 열)은 유지.
+      no-JS = 전부 펼침 렌더(aria-expanded=true), JS 가 잡으면 전환 없이 전부 닫고 시작 ═══ */}
+  <section class="vta-section vta-s7 bleed vta-reveal" data-vta-about-section="9">
+    <div class="wrapper vta-s7-grid">
+      <header>
+        <p class="vta-kicker">{aboutEyebrow}</p>
+        <h2 class="vta-title">{content.diagnosis.titleLines.join(" ")}</h2>
+        <p class="vta-body vta-s7-copy vt-left-copy">
+          {content.diagnosis.leadLines.map((line) => <span>{line}</span>)}
+        </p>
+      </header>
+      <ol class="vta-diag-list" data-vta-diag>
+        {
+          diagItems.map((it, i) => (
+            <li>
+              <h3>
+                <button
+                  type="button"
+                  id={`vta-diag-t-${i}`}
+                  data-vta-diag-t
+                  aria-expanded="true"
+                  aria-controls={`vta-diag-p-${i}`}
+                  class="vta-diag-toggle"
+                >
+                  <span class="vta-diag-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                  <span class="vta-diag-term">{it.term}</span>
+                  <span class="vta-diag-ch" aria-hidden="true"></span>
+                </button>
+              </h3>
+              <div
+                class="vta-diag-p"
+                id={`vta-diag-p-${i}`}
+                data-vta-diag-panel
+                role="region"
+                aria-labelledby={`vta-diag-t-${i}`}
+              >
+                <div class="vta-diag-overflow">
+                  <div class="vta-diag-detail">
+                    <p class="vta-body break-keep">{it.desc}</p>
+                  </div>
+                </div>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section class="vta-section vta-activity bleed vta-reveal" aria-labelledby="vta-activity-title">
+    <div class="wrapper vta-activity-grid">
+      <header>
+        <p class="vta-kicker">Activity Signs</p>
+        <h2 id="vta-activity-title" class="vta-title vta-added-title">지금 번지고 있는지<br />살펴보는 네 가지 단서</h2>
+        <p class="vta-body">
+          새 병변이 생기거나 기존 병변의 경계가 달라진다면 백반증이 활동 중일 수 있습니다. 색소회복 치료에 앞서 진행을 안정시키는 치료가 필요한지 확인해야 합니다.
+        </p>
+      </header>
+      <ol class="vta-activity-list">
+        <li>
+          <span aria-hidden="true">01</span>
+          <div><h3>새 반점과 작은 흰 점</h3><p>이전에 없던 반점이나 기존 병변 주변에 종이조각처럼 작은 흰 점이 생기는지 봅니다.</p></div>
+        </li>
+        <li>
+          <span aria-hidden="true">02</span>
+          <div><h3>흐려지는 경계와 삼색 변화</h3><p>병변 가장자리가 뿌옇게 흐려지거나 정상 피부와 흰 반점 사이에 중간 색조가 나타나는지 살핍니다.</p></div>
+        </li>
+        <li>
+          <span aria-hidden="true">03</span>
+          <div><h3>마찰과 상처 자리</h3><p>긁힌 곳, 허리띠·마스크·신발처럼 반복해 닿는 곳에 새 병변이 생기면 활동성의 단서가 될 수 있습니다.</p></div>
+        </li>
+        <li>
+          <span aria-hidden="true">04</span>
+          <div><h3>한 달에 한 번 같은 사진</h3><p>같은 장소·밝기·각도·거리로 촬영해 두면 기억만으로는 놓치기 쉬운 작은 변화를 비교할 수 있습니다.</p></div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <VitiligoRelatedColumns sectionId={section.id} eyebrow={aboutEyebrow} />
+
+</div>
+
+<style>
+  .vta-root {
+    --vta-sp: 140px;
+    color: var(--color-ink);
+  }
+  .vta-section {
+    position: relative;
+    padding-block: 140px;
+  }
+  .vta-kicker {
+    margin: 0 0 20px;
+    color: #6899C0;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+  }
+  .vta-title {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 60px;
+  }
+  .vta-activity { background: #eef5f8; }
+  .vta-activity .vta-added-title { color: #365f78; }
+  .vta-activity .vta-kicker,
+  .vta-activity-list li > span { color: #3f6f90; }
+  .vta-activity-grid { display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); gap: clamp(4rem, 9vw, 9rem); }
+  .vta-activity-grid > header { align-self: start; position: sticky; top: calc(var(--header-h) + 5.5rem); }
+  .vta-activity-grid > header .vta-body { margin-top: 30px; max-width: 31rem; line-height: 2; }
+  .vta-activity-list { border-top: 1px solid rgba(41, 42, 43, .28); }
+  .vta-activity-list li { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 22px; padding-block: 30px; border-bottom: 1px solid rgba(41, 42, 43, .28); }
+  .vta-activity-list li > span { padding-top: 4px; font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+  .vta-activity-list h3 { font-size: 21px; font-weight: 600; line-height: 1.5; }
+  .vta-activity-list p { margin-top: 9px; color: #59636a; font-size: 15px; line-height: 1.85; word-break: keep-all; }
+  @media (max-width: 767px) {
+    .vta-activity-grid { grid-template-columns: 1fr; gap: 52px; }
+    .vta-activity-grid > header { position: static; }
+    .vta-activity-list li { grid-template-columns: 38px minmax(0, 1fr); gap: 14px; padding-block: 25px; }
+    .vta-activity-list h3 { font-size: 18px; }
+  }
+  .vta-body {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 32px;
+  }
+  .vta-s1 {
+    isolation: isolate;
+  }
+  .vta-s1::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: radial-gradient(
+      37.6% 45.86% at 49.12% 100%,
+      #C3DEF1 0%,
+      #FFFFFF 100%
+    );
+    content: '';
+    transform: rotate(180deg);
+  }
+  .vta-layer {
+    position: relative;
+  }
+  .vta-split-head {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .vta-title-s1 {
+    font-weight: 400;
+  }
+  .vta-s1-body {
+    align-self: start;
+    padding-top: 48px;
+    font-size: 20px;
+    line-height: 36px;
+  }
+  .vta-photo-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 90px;
+    overflow: hidden;
+    border-radius: 20px;
+  }
+  .vta-photo {
+    position: relative;
+    display: block;
+    aspect-ratio: 350 / 300;
+    min-width: 0;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .vta-photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* 모션 사다리(원장 지시 2026-09-04): 손끝에 반응해 확대되는 것 = --motion-lift(종전 600ms). */
+    transition: transform var(--motion-lift) var(--ease-editorial);
+  }
+  .vta-ph-ov {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.3);
+    opacity: 1;
+    pointer-events: none;
+    /* 같은 hover 안이라도 투명도만 바뀌는 어둠막은 --motion-tint 다(종전 500ms).
+       사진은 --motion-lift 로 계속 열리고, 어둠은 먼저 걷혀 사진이 빨리 드러난다. */
+    transition: opacity var(--motion-tint) var(--ease-editorial);
+  }
+  .vta-photo.is-active .vta-ph-ov,
+  .vta-photo:hover .vta-ph-ov,
+  .vta-photo:focus-visible .vta-ph-ov {
+    opacity: 0;
+  }
+  .vta-photo.is-active img,
+  .vta-photo:hover img,
+  .vta-photo:focus-visible img {
+    transform: scale(1.12);
+  }
+  .vta-photo:focus-visible {
+    z-index: 1;
+    outline: 3px solid var(--color-ink);
+    outline-offset: -3px;
+  }
+
+  /* 배경 이미지의 본래 비율이 사진 영역의 높이를 정한다. */
+  .vta-s2 { position: relative; isolation: isolate; padding-block: 0; }
+  .vta-s2-bg { display: block; width: 100%; height: auto; }
+  .vta-s2 > .wrapper {
+    position: absolute; inset: 0; z-index: 1; display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); padding-block: 140px;
+  }
+  .vta-half-copy {
+    grid-column: 2;
+  }
+  .vta-kicker-white {
+    color: #FFFFFF;
+  }
+  .vta-kicker-white,
+  .vta-s2-title,
+  .vta-s2-copy {
+    filter: none;
+    text-shadow: none;
+  }
+  .vta-s2-copy {
+    margin-top: 90px;
+  }
+  .vta-s2-copy span {
+    display: block;
+  }
+  .vta-s2-copy strong {
+    font-weight: 600;
+    text-decoration-line: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+  }
+
+  .vta-s3 {
+    background: linear-gradient(180deg, #F2F8FC 0%, #C6DCEA 100%);
+  }
+  .vta-centered-head {
+    text-align: center;
+  }
+  .vta-centered-head .vta-body {
+    margin-top: 30px;
+  }
+  .vta-cause-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 36px;
+    margin-top: 60px;
+  }
+  .vta-cause-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 230px;
+    padding: 40px 30px 40px 210px;
+    border-radius: 20px;
+    background: #FFFFFF;
+  }
+  .vta-cause-icon {
+    position: absolute;
+    top: 50%;
+    left: 30px;
+    display: grid;
+    place-items: center;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: #DFECF6;
+    transform: translateY(-50%);
+  }
+  .vta-cause-icon img { width: 84px; height: auto; }
+  .vta-cause-card h3 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 32px;
+  }
+  /* 넘버링은 모바일 세로 카드 전용 — PC 알약 카드는 종전 그대로 이름부터 시작한다 */
+  .vta-cause-no {
+    display: none;
+  }
+  .vta-cause-card h3 span {
+    color: #7C8288;
+    font-weight: 500;
+  }
+  .vta-cause-card p {
+    margin-top: 15px;
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 32px;
+  }
+
+  .vta-s4-wrap, .vta-s5-wrap { padding-block: 140px; }
+  .vta-s5-wrap { background: #F2F8FC; }
+
+  .vta-s6 {
+    padding-block: 140px;
+    background: #F4F5F6;
+  }
+  .vta-s6 .vta-faq-field {
+    margin-top: 90px;
+  }
+  .vta-faq-field {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+  .vta-faq-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .vta-faq-row-1 {
+    justify-content: space-between;
+    padding-inline: 3%;
+  }
+  .vta-faq-row-2 {
+    padding-left: 9%;
+  }
+  .vta-faq-row-3 {
+    justify-content: center;
+    column-gap: 16%;
+  }
+  /* 정적 폴백 배치(no-JS·reduced-motion) — 행 흐름 + --dy 지그재그 오프셋 그대로 */
+  .vta-faq-item {
+    margin-top: var(--dy, 0px);
+  }
+  /* 자유 부유 모드(원장 지시 2026-08-01 "위치 랜덤·천천히 계속 이동") — JS 가 필드에
+     .vta-free 를 붙이고 정적 실측 높이를 인라인 고정(주변 레이아웃 시프트 없음)한 뒤
+     항목을 절대배치로 전환, rAF 1루프가 translate3d 만 구동(will-change 금지 규약 준수,
+     트랜지션 없이 프레임 단위 이동). 확장 박스는 is-top 으로 최상위 */
+  .vta-faq-field.vta-free {
+    position: relative;
+  }
+  .vta-faq-field.vta-free .vta-faq-row {
+    display: contents;
+  }
+  .vta-faq-field.vta-free .vta-faq-item {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+  }
+  .vta-faq-field.vta-free .vta-faq-item.is-top {
+    z-index: 5;
+  }
+  /* 패럴럭스 레이어(JS가 transform 부여 — 부유·확장과 분리, 별도 규칙 불요) */
+  .vta-faq-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 29.55px 41.38px;
+    background: #fff;
+    box-shadow: 0 5.91px 91.03px rgb(90 109 123 / 0.3);
+    border-radius: 29.55px;
+    /* 칸 전체가 클릭 대상(원장 지시 2026-08-01) — 여백을 눌러도 열리므로 커서도 박스 전체에.
+       열린 뒤에는 본문 읽기·선택이 주 동작이라 기본 커서로 되돌린다(아래 규칙) */
+    cursor: pointer;
+  }
+  .vta-faq-box.is-open {
+    cursor: default;
+  }
+  .vta-faq-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14.78px;
+    cursor: pointer;
+    color: var(--color-ink);
+  }
+  .vta-faq-q {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 30px;
+  }
+  .vta-faq-x {
+    display: grid;
+    width: 0;
+    height: 0;
+    place-items: center;
+    flex: 0 0 auto;
+    opacity: 0;
+    overflow: hidden;
+    /* 원장 피드백 2026-07-30: 클릭 확장은 조금 더 서서히 — 기존 0.35s의 ~1.85배 */
+    transition:
+      width 0.65s var(--ease-editorial),
+      height 0.65s var(--ease-editorial),
+      opacity 0.65s var(--ease-editorial);
+  }
+  .vta-faq-box.is-open .vta-faq-x {
+    width: 44px;
+    height: 44px;
+    opacity: 1;
+  }
+  .vta-faq-x img {
+    display: block;
+    width: 23px;
+    height: 23px;
+  }
+  /* 본문 펼침 — grid 0fr→1fr(가로·세로 동시 보간, 주변 박스도 부드럽게 비켜남).
+     원장 피드백 2026-07-30: 클릭 시 조금 더 서서히 커지게 — 0.5s → 0.9s(~1.8배).
+     주변 박스 밀림도 이 grid 보간이 구동하므로 함께 느려진다. 둥실·패럴럭스 속도 불변 */
+  .vta-faq-a {
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr;
+    margin-top: 14.78px;
+  }
+  .vta-faq-field.vta-faq-animate .vta-faq-a {
+    transition:
+      grid-template-rows 0.9s var(--ease-editorial),
+      grid-template-columns 0.9s var(--ease-editorial),
+      margin-top 0.9s var(--ease-editorial);
+  }
+  .vta-faq-a-in {
+    overflow: hidden;
+    min-height: 0;
+    min-width: 0;
+  }
+  .vta-faq-a-in p {
+    width: 480px;
+    text-align: left;
+  }
+  .vta-faq-ready .vta-faq-box:not(.is-open) .vta-faq-a {
+    grid-template-rows: 0fr;
+    grid-template-columns: 0fr;
+    margin-top: 0;
+  }
+  .vta-faq-box.is-open .vta-faq-a {
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr;
+    margin-top: 14.78px;
+  }
+  @media (max-width: 767px) {
+    .vta-faq-field {
+      gap: 20px;
+    }
+    .vta-faq-row {
+      display: contents;
+    }
+    .vta-faq-item {
+      margin-top: 0;
+      max-width: 100%;
+    }
+    .vta-mo-l {
+      align-self: flex-start;
+      margin-left: 2%;
+    }
+    .vta-mo-r {
+      align-self: flex-end;
+      margin-right: 2%;
+    }
+    .vta-faq-box {
+      padding: 20px 28px;
+      border-radius: 22px;
+    }
+    .vta-faq-q {
+      font-size: 18px;
+      line-height: 26px;
+    }
+    .vta-faq-a-in p {
+      /* min() 캡 — 767px 경계에서 619px까지 커져 이웃 박스와 겹치는 것 방지(코드검수) */
+      width: min(420px, calc(100vw - 148px));
+    }
+  }
+
+  /* 이 섹션만 흰 바탕(원장 지시 2026-08-07) — 이 항목은 모바일 지시 중 유일하게 PC 도 동일 */
+  .vta-s7 {
+    background: #FFFFFF;
+  }
+  .vta-s7-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .vta-s7-grid > header {
+    padding-right: 0;
+  }
+  .vta-s7-copy {
+    margin-top: 30px;
+  }
+  .vta-s7-copy span {
+    display: block;
+  }
+  .vta-diag-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .vta-diag-list > li {
+    width: 700px;
+    max-width: 100%;
+    min-height: 72px;
+    overflow: hidden;
+    border-radius: 36px;
+    background: #FFFFFF;
+    box-shadow: 0px 6px 21.5px rgba(157, 173, 185, 0.25);
+  }
+  .vta-diag-list h3 {
+    margin: 0;
+  }
+  .vta-diag-toggle {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 12px;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    height: 72px;
+    padding: 0 26px 0 15px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .vta-diag-num {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 50%;
+    background: #EBF5FC;
+    color: #6899C0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+  .vta-diag-term {
+    color: var(--color-ink);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 28px;
+  }
+  .vta-diag-ch {
+    width: 12px;
+    height: 8px;
+    color: #6899C0;
+    /* 곡선만 통일 — 엑시머 패널의 같은 아코디언 표식(+/−)이 이미 350ms var(--ease-editorial)
+       이라 시간은 맞는데 여기만 ease-out 리터럴이었다. 사이트 곡선은 --ease-editorial 하나다. */
+    transition: transform 350ms var(--ease-editorial);
+  }
+  .vta-diag-p {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .vta-diag-overflow {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .vta-diag-detail {
+    margin: 0 15px 15px;
+    padding: 20px 24px;
+    border-radius: 24px;
+    background: #FAF9F8;
+  }
+  .vta-diag-ready .vta-diag-p {
+    transition: grid-template-rows 500ms var(--ease-editorial);
+  }
+  /* 버튼이 h3 안이라 형제 선택자가 패널에 닿지 않는다 — JS 가 li 에 is-open 을 함께
+     토글하고 CSS 는 li 상태로 구동(aria-expanded 는 접근성 상태 전용) */
+  [data-vta-diag].vta-diag-ready li:not(.is-open) .vta-diag-p {
+    grid-template-rows: 0fr;
+  }
+  @media (max-width: 767px) {
+    /* ── 모바일 공통 규격(원장 확정 2026-08-07) — 값은 src/styles/vitiligo.css `.vt-scope`
+       소유다. 부제 18/24 · 제목 28/40 · 내용 16/26, 부제↔제목 16 · 제목↔내용 30(좌측)·
+       20(가운데) · 내용↔이미지 40 · 섹션 상하 90 · 박스 radius 16.
+       여기서 숫자를 다시 적지 않는다 — 값 변경은 vitiligo.css 한 곳에서만.
+       var() 폴백을 함께 두는 이유 = .vt-scope 가 아직 안 붙은 렌더에서도 종전값이 아니라
+       확정 규격으로 떨어지게 하려는 것(Tailwind 4 트리셰이킹과 무관한 평범한 CSS 변수). ── */
+    /* 섹션 상하 여백 — 이번 지시 범위(§1·§3·§7)만 건다. §2 는 배경 레이어가 패딩까지
+       덮어야 해서 여백을 안쪽 .wrapper 가 갖고(위 규칙 padding-block:0), §6 은 다른 트랙
+       소유라 종전 140 그대로다. `.vta-section` 을 통째로 바꾸면 이 둘까지 끌려온다. */
+    .vta-s1,
+    .vta-s3,
+    .vta-s7 {
+      padding-block: var(--vt-section-pad, 90px);
+    }
+    /* 좌우 여백 30 — 전역 `.wrapper` 는 모바일 20 이라, 지시가 못박은 330 폭 박스
+       (§1 사진 프레임 · §7 아코디언)만 가운데 정렬로 30 이 되고 본문 텍스트는 20 에 남아
+       시안에 없는 10px 단차가 생겼다. 이 패널 안에서만 30 으로 맞춘다(전역 wrapper 불변).
+       ⚠️ §2 는 배경 레이어가 이 wrapper 안에 있고 세로 여백도 여기서 준다 — 함께 30 이 된다. */
+    .vta-section > .wrapper {
+      padding-inline: var(--vt-gutter, 30px);
+    }
+    .vta-title {
+      font-size: var(--vt-title-size, 28px);
+      line-height: var(--vt-title-leading, 40px);
+      color: var(--vt-ink, #292a2b);
+    }
+    .vta-body {
+      font-size: var(--vt-body-size, 16px);
+      line-height: var(--vt-body-leading, 26px);
+      color: var(--vt-ink, #292a2b);
+    }
+    /* 부제 색은 브랜드색이지만 §2 의 흰 부제(.vta-kicker-white)는 예외 — 같은 특이도라
+       뒤에 오는 이 규칙이 이겨 흰색이 지워진다. :not() 으로 명시적으로 비켜 간다. */
+    .vta-kicker {
+      margin-bottom: var(--vt-gap-kicker-title, 16px);
+      font-size: var(--vt-kicker-size, 18px);
+      line-height: var(--vt-kicker-leading, 24px);
+    }
+    .vta-kicker:not(.vta-kicker-white) {
+      color: var(--vt-brand, #6899c0);
+    }
+    .vta-split-head,
+    .vta-s2 > .wrapper,
+    .vta-s7-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* ── §1 ── */
+    /* 배경 — 브랜드 블루가 우상단에서 피어나 좌하로 흰색이 된다. ::before 에 이미
+       rotate(180deg)가 걸려 있어 지시 원문의 `at 0% 100%`(좌하)가 화면에선 우상단이 된다.
+       세로 반경만 % 대신 vw 인 이유: 섹션 높이가 본문 길이에 따라 달라져 %로는 퍼짐이
+       흔들린다. 참고 시안 실측(390 기준 가로 265px·세로 268px 안에서 흰색 도달)과 일치. */
+    .vta-s1::before {
+      background: radial-gradient(67.95% 68.64vw at 0% 100%, #C3DEF1 0%, #FFFFFF 100%);
+    }
+    .vta-s1-body {
+      margin-top: var(--vt-gap-title-body, 30px);
+      padding-top: 0;
+    }
+    /* 사진 — 165×130 넉 장이 2열 2행, 전체 프레임 330×260(원장 확정 2026-08-07).
+       확대·오버레이 호버/포커스 규칙은 PC 그대로 살아 있다(위 .vta-photo 블록). */
+    .vta-photo-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 330px;
+      max-width: 100%;
+      margin-top: var(--vt-gap-body-media, 40px);
+      margin-inline: auto;
+      border-radius: var(--vt-radius, 16px);
+    }
+    .vta-photo {
+      aspect-ratio: 165 / 130;
+    }
+
+    .vta-s2 > .wrapper { padding-block: 280px var(--vt-section-pad, 90px); }
+    .vta-half-copy {
+      grid-column: 1;
+    }
+    .vta-s2-copy {
+      margin-top: var(--vt-gap-title-body, 30px);
+    }
+
+    /* ── §3 — 참고 시안: 세로 카드 가로 스크롤(가운데 스냅·좌우 이웃 걸침).
+       카드 240 고정폭 / 간격 16 / 안쪽 여백 좌우 20·상하 25.
+       원형 100 안에 아이콘 60, 넘버링 14/20 브랜드색, 제목 22/28, 내용 14/22.
+       간격은 원형↔제목 20 · 넘버링↔제목 6 · 제목↔내용 12. ── */
+    /* 가운데 정렬 머리글이라 제목↔내용은 center 토큰(20) */
+    .vta-centered-head .vta-body {
+      margin-top: var(--vt-gap-title-body-center, 20px);
+    }
+    .vta-cause-grid {
+      display: flex;
+      gap: 16px;
+      margin-top: var(--vt-gap-body-media, 40px);
+      /* 트랙은 화면 전폭으로 빠져나가고, 양끝을 카드 반폭만큼 비워 첫/끝 카드도 가운데 스냅 */
+      margin-inline: calc(50% - 50vw);
+      padding-inline: calc(50vw - 120px);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .vta-cause-grid::-webkit-scrollbar {
+      display: none;
+    }
+    .vta-cause-card {
+      display: block;
+      flex: 0 0 240px;
+      min-height: 0;
+      padding: 25px 20px;
+      text-align: center;
+      border-radius: var(--vt-radius, 16px);
+      scroll-snap-align: center;
+    }
+    .vta-cause-icon {
+      position: static;
+      display: grid;
+      width: 100px;
+      height: 100px;
+      margin-inline: auto;
+      place-items: center;
+      transform: none;
+    }
+    .vta-cause-icon img {
+      width: 60px;
+      height: auto;
+    }
+    /* 아이콘 원형 ↔ 제목 20 */
+    .vta-cause-card > div {
+      margin-top: 20px;
+    }
+    /* ⚠️ 선택자에 `h3` 를 반드시 끼운다 — 바로 위 `.vta-cause-card h3 span`(쾨브너 회색 규칙)이
+       넘버링 span 에도 걸려 `.vta-cause-no` 단독(클래스 1)으로는 색·굵기를 빼앗긴다.
+       실제로 회색 #7C8288 · 500 으로 렌더됐다(검수 실측). 여기를 다시 단축하지 말 것. */
+    .vta-cause-card h3 .vta-cause-no {
+      display: inline;
+      margin-right: 6px; /* 넘버링 ↔ 제목 6 */
+      color: var(--vt-brand, #6899c0);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 20px;
+    }
+    .vta-cause-card h3 {
+      color: var(--vt-ink, #292a2b);
+      font-size: 22px;
+      line-height: 28px;
+    }
+    .vta-cause-card p {
+      margin-top: 12px; /* 제목 ↔ 내용 12 */
+      color: var(--vt-ink, #292a2b);
+      font-size: 14px;
+      line-height: 22px;
+    }
+
+    .vta-s4-wrap, .vta-s5-wrap { padding-block: var(--vt-section-pad, 90px); }
+    .vta-s7-grid > header {
+      padding-right: 0;
+    }
+    .vta-s7-copy {
+      margin-top: var(--vt-gap-title-body, 30px);
+    }
+    /* ── §7 아코디언 — 접힘 330×53(원장 확정 2026-08-07). 박스 안쪽 15,
+       제목 Medium 16/22, 내용 Regular 13/22, 내용 박스 #FAF9F8·패딩 15, 제목↔내용 12.
+       접힘 높이 53 = 위 15 + 제목 22 + 아래 15. 펼치면 그 아래 15가 내용 박스의 하단
+       여백이 되도록 하단 패딩만 li 로 내리고 토글은 위쪽 패딩만 갖는다. ── */
+    .vta-diag-list {
+      align-items: center;
+      margin-top: var(--vt-gap-body-media, 40px);
+    }
+    .vta-diag-list > li {
+      width: 330px;
+      min-height: 53px;
+      padding-bottom: 15px;
+      box-shadow: 0px 4.39889px 15.7627px rgba(157, 173, 185, 0.25);
+    }
+    .vta-diag-toggle {
+      grid-template-columns: 23px minmax(0, 1fr) 12px;
+      gap: 10px;
+      height: auto;
+      padding: 15px 15px 0;
+    }
+    /* 넘버링 원은 제목 줄(22)보다 커서 이 원이 접힘 높이를 정한다 — 23으로 두면
+       15 + 23 + 15 = 53 이 정확히 맞고, 펼침 때 제목↔내용 박스도 시안 실측 50px 과 겹친다 */
+    .vta-diag-num {
+      width: 23px;
+      height: 23px;
+    }
+    .vta-diag-term {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 22px;
+    }
+    .vta-diag-detail {
+      margin: 12px 15px 0;
+      padding: 15px;
+      border-radius: var(--vt-radius, 16px);
+    }
+    .vta-diag-detail .vta-body {
+      font-size: 13px;
+      line-height: 22px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vta-faq-item {
+      animation: none;
+    }
+    .vta-photo img,
+    .vta-ph-ov,
+    .vta-faq-a,
+    .vta-faq-x,
+    .vta-diag-p,
+    .vta-diag-ch,
+    .vta-reveal {
+      transition: none;
+    }
+    .vta-s5-wrap :global(.vta-s5 .ecr-name) {
+      transition: none;
+    }
+    .vta-photo:hover img {
+      transform: none;
+    }
+  }
+
+  /* Figma 1879:1905 / 1880:2810 — 감별 항목과 안내. */
+  .vta-differentiation { padding-block: 120px 140px; }
+  .vta-differentiation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vta-differentiation header { padding-top: 20px; }
+  @media (min-width: 768px) {
+    .vta-differentiation-grid > div { padding-top: 68px; }
+  }
+  .vta-differentiation .vta-title span { display: block; }
+  .vta-check-list { padding: 0; margin: 0; list-style: none; }
+  .vta-check-list li { display: flex; gap: 16px; align-items: center; padding-block: 21px; border-bottom: 1px solid #E4E8EB; }
+  .vta-check-list li:first-child { padding-top: 0; }
+  .vta-check-list img { width: 30px; height: auto; flex-shrink: 0; }
+  .vta-check-list p { margin: 0; color: #292A2B; font-size: 20px; line-height: 36px; font-weight: 500; word-break: keep-all; }
+  .vta-notice { display: flex; align-items: center; gap: 11px; padding: 28px 36px; margin-top: 30px; background: #F2F8FC; border-radius: 20px; }
+  .vta-notice img { width: 32px; height: auto; flex-shrink: 0; }
+  .vta-notice p { margin: 0; color: #6085A3; font-size: 20px; line-height: 36px; font-weight: 600; word-break: keep-all; }
+  .vta-s3 .vta-centered-head .vta-body, .vta-goals .vta-body, .vta-s7-copy { font-size: 20px; line-height: 36px; }
+  .vta-pager { display: none; }
+
+  /* Figma 1879:2031 — 전달 배경과 실제 콘텐츠 높이를 사용한다. */
+  .vta-goals { background-position: center; background-size: cover; background-repeat: no-repeat; padding-bottom: 160px; }
+  .vta-goal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px; margin-top: 60px; }
+  .vta-goal-card { background: #FFF; border-radius: 20px; min-height: 520px; padding: 30px; text-align: center; }
+  .vta-goal-image { height: 210px; border-radius: 10px; overflow: hidden; background: #E5E5E5; }
+  .vta-goal-image img { width: 100%; height: 100%; object-fit: cover; }
+  .vta-goal-copy { padding: 46px 10px 20px; }
+  .vta-goal-number { display: grid; width: 44px; height: 44px; place-items: center; margin-inline: auto; border-radius: 50%; background: #6899C0; color: #FFF; font-size: 20px; font-weight: 600; line-height: 30px; }
+  .vta-goal-copy h3 { font-size: 24px; line-height: 36px; font-weight: 600; margin: 16px 0; }
+  .vta-goal-copy p { font-size: 20px; line-height: 32px; margin: 0; }
+  .vta-goal-copy p span, .vta-goal-notice p span { display: block; }
+  .vta-goal-notice { padding: 50px 40px; margin-top: 30px; border-radius: 20px; background: rgb(255 255 255 / .3); text-align: center; }
+  .vta-goal-notice h3 { font-size: 24px; line-height: 36px; font-weight: 600; margin: 0 0 8px; }
+  .vta-goal-notice p { font-size: 20px; line-height: 36px; margin: 0; word-break: keep-all; }
+
+  @media (min-width: 768px) {
+    .vta-diag-list { gap: 24px; padding-top: 48px; }
+    .vta-diag-list > li { min-height: 84px; border-radius: 42px; box-shadow: 0 6px 10.75px rgb(157 173 185 / .25); }
+    .vta-diag-toggle { height: 84px; grid-template-columns: 44px minmax(0, 1fr) 20px; gap: 20px; padding: 0 40px 0 20px; }
+    .vta-diag-num { width: 44px; height: 44px; font-size: 20px; line-height: 30px; }
+    .vta-diag-term { font-size: 24px; line-height: 36px; }
+    .vta-diag-detail { margin: 0 20px 20px; padding: 10px 20px; border-radius: 22px; }
+    .vta-diag-detail .vta-body { font-size: 20px; line-height: 32px; }
+  }
+  /* Excimer's two-line icon: same center, rotation direction, duration and easing. */
+  .vta-diag-ch { position: relative; width: 16px; height: 16px; color: #A0C5DD; }
+  .vta-diag-ch::before, .vta-diag-ch::after {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    width: 16px; height: 1.5px; background: currentColor;
+    transform-origin: center;
+    transform: translate(-50%, -50%);
+    transition: transform 350ms var(--ease-editorial);
+  }
+  .vta-diag-ch::after { transform: translate(-50%, -50%) rotate(90deg); }
+  [data-vta-diag] li.is-open .vta-diag-ch::after { transform: translate(-50%, -50%) rotate(0deg); }
+  @media (min-width: 768px) {
+    .vta-diag-toggle { grid-template-columns: 44px minmax(0, 1fr) 16px; }
+  }
+  @media (max-width: 767px) {
+    /* Figma 2068:4047, with the explicitly requested full 16px icon. */
+    .vta-diag-list { align-items: stretch; gap: 10px; }
+    .vta-diag-list > li { width: 100%; min-height: 53px; padding-bottom: 0; border-radius: 26.393px; }
+    .vta-diag-toggle { height: 53px; grid-template-columns: 26px minmax(0, 1fr) 16px; gap: 8.59px; padding: 13.5px 20px 13.5px 17px; }
+    .vta-diag-num { width: 26px; height: 26px; font-size: 12.464px; line-height: 23.066px; }
+    .vta-diag-term { color: #292A2B; }
+    .vta-diag-detail { margin: 0 15px 15px; padding: 15px; border-radius: 16px; }
+    .vta-diag-detail .vta-body { color: #000; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vta-diag-ch::before, .vta-diag-ch::after { transition: none; }
+  }
+
+  @media (min-width: 768px) and (max-width: 1199px) {
+    .vta-cause-card { padding: 30px 24px; flex-direction: column; gap: 20px; text-align: center; }
+    .vta-cause-icon { position: static; transform: none; flex-shrink: 0; }
+    .vta-differentiation-grid { gap: 30px; }
+    .vta-goal-card { padding: 20px; }
+    .vta-goal-image { height: 180px; }
+    .vta-goal-copy { padding-inline: 0; }
+  }
+  @media (max-width: 767px) {
+    .vta-s2 > .wrapper { padding-block: var(--vt-section-pad, 90px); }
+    .vta-differentiation, .vta-goals { padding-block: 90px; }
+    .vta-differentiation-grid { grid-template-columns: minmax(0, 1fr); gap: 30px; }
+    .vta-differentiation header { padding-top: 0; }
+    .vta-differentiation .vta-kicker, .vta-s3 .vta-kicker, .vta-goals .vta-kicker { font-size: 16px; line-height: 24px; }
+    .vta-check-list li { gap: 16px; padding-block: 12px; }
+    .vta-check-list p { font-size: 15px; line-height: 24px; font-weight: 400; }
+    .vta-notice { padding: 22px 16px; gap: 10px; margin-top: 30px; border-radius: 12px; }
+    .vta-notice img { width: 24px; }
+    .vta-notice p { font-size: 16px; line-height: 24px; color: #6899C0; }
+    .vta-s3 .vta-centered-head .vta-body, .vta-goals .vta-body, .vta-s7-copy, .vta-s1-body { font-size: 16px; line-height: 26px; }
+    .vta-cause-grid { position: relative; gap: 18px; scroll-padding-inline: 0; }
+    .vta-pager { display: flex; justify-content: center; margin-top: 30px; color: #536B80; }
+    .vta-pager :global(.paging-indicator) { gap: 14px; }
+    .vta-pager-count { font-family: 'Cormorant Garamond', serif; font-size: 16px; line-height: 20px; font-weight: 600; letter-spacing: 3.2px; }
+    .vta-goal-grid { position: relative; display: flex; align-items: stretch; gap: 18px; margin-top: 40px; margin-inline: calc(50% - 50vw); padding-inline: calc(50vw - 140px); overflow-x: auto; scroll-padding-inline: calc(50vw - 140px); scroll-snap-type: x mandatory; scrollbar-width: none; }
+    .vta-goal-grid::-webkit-scrollbar { display: none; }
+    .vta-goal-card { flex: 0 0 280px; min-height: 361px; padding: 0; border-radius: 16px; overflow: hidden; scroll-snap-align: center; }
+    .vta-goal-image { height: 180px; border-radius: 0; background: #E4E4E4; }
+    .vta-goal-copy { padding: 30px 20px 28px; }
+    .vta-goal-number { width: 30px; height: 30px; font-size: 16px; line-height: 20px; }
+    .vta-goal-copy h3 { font-size: 18px; line-height: 24px; margin: 12px 0; }
+    .vta-goal-copy p { font-size: 14px; line-height: 24px; }
+    .vta-goal-notice { margin-top: 40px; padding: 24px 20px; border-radius: 12px; }
+    .vta-goal-notice h3 { font-size: 18px; line-height: 26px; }
+    .vta-goal-notice p { font-size: 14px; line-height: 24px; }
+  }
+
+
+  /* 2026-09-30: only the requested About-page slots. */
+  .vta-photo { aspect-ratio: 350 / 400; }
+  .vta-s2-picture { position: absolute; inset: 0; z-index: -1; }
+  .vta-s2 .vta-s2-bg { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+  .vta-s2 > .wrapper { position: relative; inset: auto; }
+  .vta-s2 .vta-kicker { color: #6899c0; }
+  .vta-s2-copy { margin-top: 60px; font-size: 20px; line-height: 36px; }
+  .vta-s2-copy strong { text-decoration: none; }
+  .vta-notice { background: #f2f8fc; border-color: #f2f8fc; }
+  .vta-notice p { color: #6899c0; }
+  @media (min-width: 768px) and (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .vta-cause-card { transition: transform .25s ease, box-shadow .25s ease; }
+    .vta-cause-card:hover { transform: translateY(-7px); box-shadow: 0 12px 30px rgb(104 153 192 / .2); }
+  }
+  .vta-goal-card { min-height: 500px; padding: 20px; }
+  .vta-goal-image { height: 224px; border-radius: 10px; }
+  .vta-goal-copy { padding: 32px 20px 24px; }
+  @media (min-width: 768px) {
+    .vta-s1-body, .vta-s2-copy { --vt-left-copy-width: 700px; }
+  }
+  .vta-faq-toggle { gap: 6px; }
+  .vta-faq-box.is-open .vta-faq-x { width: 23px; height: 23px; }
+  @media (max-width: 767px) {
+    .vta-root > .vta-section > .wrapper { padding-inline: 20px; }
+    .vta-root .vta-kicker { font-size: 16px; line-height: 24px; }
+    .vta-photo { aspect-ratio: 175 / 150; }
+    .vta-photo-strip { width: 100%; }
+    .vta-s2 > .wrapper { grid-template-columns: minmax(0, 1fr); padding-top: 282px; padding-bottom: 90px; }
+    .vta-s2 .vta-s2-bg { object-position: center top; }
+    .vta-s2-copy { margin-top: 30px; font-size: 16px; line-height: 26px; }
+    .vta-cause-grid { align-items: flex-start; transition: height .3s ease; }
+    .vta-cause-card { height: auto; scroll-snap-stop: always; }
+    .vta-cause-card { overflow: hidden; }
+    .vta-cause-card[data-adaptive-current="false"] p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--adaptive-lines); overflow: hidden; }
+    .vta-s5-wrap :global(.vta-s4 > .text-center) { padding-inline: 20px; }
+    .vta-pager { color: #6899c0; }
+    .vta-pager-count { font-family: inherit; font-weight: 400; font-variant-numeric: tabular-nums; }
+    .vta-pager :global(.paging-indicator__arrow) { opacity: .65; }
+    .vta-goal-card { min-height: 361px; padding: 15px; }
+    .vta-goal-image { height: 165px; border-radius: 10px; }
+    .vta-goal-copy { padding: 30px 10px 10px; }
+    .vta-goal-copy p { font-size: 15px; line-height: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .vta-cause-grid { transition: none; } }
+</style>
+
+<script>
+  import { initAdaptiveRail } from './about/adaptiveRail';
+
+  const causeRail = document.querySelector<HTMLElement>('#vta-causes-rail');
+  if (causeRail) initAdaptiveRail(causeRail, 'causes');
+  import { syncDisclosureState } from './about/disclosureState.mjs';
+  import { initEditorialReveal } from '../../lib/editorialReveal.mjs';
+
+  // ── §4 카드 탭 토글 스크립트는 공용 VtaTypeCardsSection(2026-07-31 추출)이 보유 —
+  // 문서당 1회 삽입 + [data-vta-picker] querySelectorAll 바인딩이라 여기 중복 두면
+  // 이중 토글(클릭 무효)이 된다. 이 파일에는 두지 말 것.
+
+  // §1 사진 — 자동 순환 없이 사용자가 선택한 사진만 강조한다.
+  {
+    const strip = document.querySelector<HTMLElement>('[data-vta-photo-strip]');
+    if (strip) {
+      const photos = Array.from(strip.querySelectorAll<HTMLButtonElement>('[data-vta-photo]'));
+      const activate = (next: number) => {
+        photos.forEach((photo, index) => {
+          const active = index === next;
+          photo.classList.toggle('is-active', active);
+          photo.setAttribute('aria-pressed', String(active));
+        });
+      };
+      photos.forEach((photo, index) => {
+        photo.addEventListener('focus', () => activate(index));
+        photo.addEventListener('click', () => activate(index));
+      });
+    }
+  }
+
+  // 섹션별 fade-up — 지점 상세와 같은 공통 정본을 사용한다.
+  {
+    const root = document.querySelector<HTMLElement>('[data-vta-about-root]');
+    if (root) {
+      const cleanupReveal = initEditorialReveal({ root, targets: '.vta-reveal' });
+      document.addEventListener('astro:before-swap', cleanupReveal, { once: true });
+    }
+  }
+
+  // ── §7 진단 배타 아코디언(원장 지시 2026-08-01 "닫혀 있고, 클릭하면 열리고, 다른 거
+  // 클릭하면 나머진 닫히고") — 공용 FaqAccordion 스크립트 문법 이식(한 번에 하나·재클릭
+  // 닫힘·키보드는 네이티브 button 이 처리). no-JS 는 전부 펼침 렌더이므로 여기서 전부
+  // 닫고 시작 — 초기 접힘이 애니메이션으로 보이지 않게 리플로 확정 후 vta-diag-ready 로
+  // 전환을 활성화한다.
+  {
+    const root = document.querySelector<HTMLElement>('[data-vta-diag]');
+    if (root) {
+      const lis = Array.from(root.querySelectorAll<HTMLLIElement>('li'));
+      const setOpen = (li: HTMLLIElement, open: boolean) => {
+        li.classList.toggle('is-open', open);
+        const trigger = li.querySelector<HTMLButtonElement>('[data-vta-diag-t]');
+        const panel = li.querySelector<HTMLElement>('[data-vta-diag-panel]');
+        if (trigger && panel) syncDisclosureState(trigger, panel, open);
+      };
+      lis.forEach((li) => setOpen(li, false));
+      void root.offsetHeight; // 접힘 상태를 페인트 전에 확정(로드 플래시 방지)
+      root.classList.add('vta-diag-ready');
+      lis.forEach((li) => {
+        li.querySelector<HTMLButtonElement>('[data-vta-diag-t]')?.addEventListener('click', () => {
+          const willOpen = !li.classList.contains('is-open');
+          lis.forEach((o) => setOpen(o, o === li && willOpen));
+        });
+      });
+    }
+  }
+
+  // ── §6 FAQ — 클릭 확장(한 번에 하나)·× 닫기 + PC 마우스 패럴럭스(±10px, rAF·lerp).
+  // reduced-motion·터치 기기는 패럴럭스 없음(둥실은 CSS가 자체 정지).
+  {
+    const field = document.querySelector<HTMLElement>('[data-vta-faq-field]');
+    if (field) {
+      const boxes = Array.from(field.querySelectorAll<HTMLElement>('[data-vta-faq]'));
+      const setOpen = (box: HTMLElement, open: boolean) => {
+        box.classList.toggle('is-open', open);
+        const trigger = box.querySelector<HTMLButtonElement>('.vta-faq-toggle');
+        const panel = box.querySelector<HTMLElement>('[data-vta-faq-panel]');
+        if (trigger && panel) syncDisclosureState(trigger, panel, open);
+      };
+      boxes.forEach((box) => {
+        const btn = box.querySelector<HTMLButtonElement>('.vta-faq-toggle');
+        btn?.addEventListener('click', () => {
+          const wasOpen = box.classList.contains('is-open');
+          boxes.forEach((other) => setOpen(other, false));
+          if (!wasOpen) setOpen(box, true);
+        });
+
+        /* 칸 전체 클릭으로 열기(원장 지시 2026-08-01 "글씨 클릭뿐 아니라 그 칸 클릭해도 열리게").
+           종전에는 질문 텍스트를 감싼 button 만 클릭 대상이라 박스 여백을 누르면 반응이 없었다.
+           박스 아무 곳이나 눌러도 버튼 클릭으로 위임한다.
+           설계 판단:
+           · 이미 열린 박스에서는 위임하지 않는다 — 본문을 읽거나 드래그 선택하려고 누른 것을
+             '닫기'로 오해하면 안 된다. 닫기는 × 버튼(=button)이 담당한다.
+           · button 안쪽 클릭은 위임하지 않는다(중복 발화 방지 — 위 핸들러가 이미 처리).
+           · 마크업·접근성은 불변: button 이 계속 유일한 포커스 대상이라 키보드 순서·낭독이
+             그대로다. 박스를 button 으로 바꾸면 본문 안의 요소까지 버튼 안에 들어가 어색해진다. */
+        box.addEventListener('click', (e) => {
+          if (!btn || box.classList.contains('is-open')) return;
+          if ((e.target as HTMLElement)?.closest('button')) return;
+          btn.click();
+        });
+      });
+
+      // HTML/CSS 기본값은 답변 전체 노출이다. 리스너가 모두 준비된 뒤에만 접힘 모드로 전환한다.
+      boxes.forEach((box) => setOpen(box, false));
+      field.classList.add('vta-faq-ready');
+      void field.offsetHeight;
+      requestAnimationFrame(() => field.classList.add('vta-faq-animate'));
+
+      const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+      // ── §6 자유 부유(원장 지시 2026-08-01 "위치를 그때그때 랜덤하게, 천천히 계속 이동,
+      //    좀 자유롭게 위치 바뀌게 서서히") — 정적 행 배치를 자유 필드로 전환:
+      //    1) 방문마다 랜덤 산포 — 균일 랜덤 다트 던지기(최소 여백 28px 조건) + 잔여 완화
+      //    2) 부유 — 박스별 속도 3.5~7px/s(사이트 마퀴들보다 느긋), 진행각 = 기준각(초저속
+      //       회전) + 사인 2결합(주기 35~160s) → 완만히 휘는 곡선, 직선 왕복 티 없음
+      //    3) 경계 — 안쪽 40px부터 깊이 비례 스프링으로 완만히 되돌림 + 하드 클램프
+      //    4) 확장 박스 — 부유 지속(원장 정정 2026-08-01) + is-top 최상위, 경계·반발은
+      //       확장 실측 크기(ew/eh) 기준
+      //    5) 지속 쌍별 반발(원장 제보·후속 2026-08-01, 강화 2026-08-07 "너무 겹쳐서
+      //       다닐 때가 있다") — 닫힘끼리는 26px 근접 회피 밴드(깊이 제곱 램프, 맞닿는
+      //       지점 34px/s)로 글자가 가리기 전에 서로 비켜난다. 열린 박스는 배타 구역
+      //       (확장 rect + 8px 에서 닫힌 이웃이 완전히 비켜날 때까지 강한 반발·easeOut,
+      //       공간 없으면 부분 겹침만 허용)
+      //    6) 호버(PC 파인 포인터) — 해당 박스만 ×0.15 감속(lerp 로 서서히 전환)
+      //    rAF 1루프가 전 박스 처리, IntersectionObserver 로 화면 밖에서는 루프 정지.
+      //    필드 높이 = 정적 배치 실측값 인라인 고정 → 주변 레이아웃 시프트 없음. ──
+      {
+        const items = Array.from(field.querySelectorAll<HTMLElement>('.vta-faq-item'));
+        interface FloatState {
+          el: HTMLElement;
+          box: HTMLElement;
+          x: number;
+          y: number;
+          w: number;
+          h: number;
+          th: number; // 기준 진행각(rad)
+          rot: number; // 기준각 초저속 회전(rad/s)
+          a1: number; // 사인 결합 진폭·각속도·위상 2벌
+          o1: number;
+          p1: number;
+          a2: number;
+          o2: number;
+          p2: number;
+          spd: number; // 기본 속도(px/s)
+          mul: number; // 현재 속도 배율(호버·확장 lerp)
+          hov: boolean;
+          open: boolean;
+          ew: number; // 확장 실측 크기(열림 중 경계·반발 계산용)
+          eh: number;
+          bw: number; // 이번 프레임 유효 크기(열림 = ew/eh, 닫힘 = w/h)
+          bh: number;
+          vx: number; // 이번 프레임 합성 속도(부유 + 경계 + 반발)
+          vy: number;
+          exAx: '' | 'x' | 'y'; // 배타 구역 탈출 방향 히스테리시스(닫힌 박스용)
+          exDir: number;
+        }
+        let states: FloatState[] = [];
+        let W = 0;
+        let H = 0;
+        let raf = 0;
+        let lastT = 0;
+        let visible = false;
+        let ready = false;
+        let observing = false;
+        const rand = (a: number, b: number) => a + Math.random() * (b - a);
+        const apply = (s: FloatState) => {
+          s.el.style.transform = `translate3d(${s.x.toFixed(2)}px, ${s.y.toFixed(2)}px, 0)`;
+        };
+        const clampAll = () => {
+          states.forEach((s) => {
+            s.x = Math.min(Math.max(s.x, 0), Math.max(W - s.w, 0));
+            s.y = Math.min(Math.max(s.y, 0), Math.max(H - s.h, 0));
+          });
+        };
+        const SEP_GAP = 28; // 초기 배치 목표 여백(px)
+        const SEP_BAND = 26; // 닫힘·닫힘 근접 회피 밴드 — 이 여유 안으로 들면 밀어내기 시작
+        const SEP_MAX = 34; // 맞닿는 순간의 분리 속도(px/s, 두 박스 합계)
+        const SEP_HARD = 64; // 이미 깊게 겹친 상태(열림 확장 등)의 해소 속도 상한
+        /* 초기 산포 — 최선후보 다트 던지기(포아송 디스크 샘플링류).
+           박스마다 필드 전역에 균일 랜덤 후보를 던져, 이미 놓인 박스와의 최소 AABB 여백이
+           SEP_GAP 이상인 첫 후보를 채택한다(끝내 못 채우면 그중 여백이 가장 큰 자리).
+           큰 박스부터 놓아야 남은 자리에 작은 박스가 들어갈 확률이 높다. 좁은 필드(모바일)
+           에서 조건을 못 채운 잔여분만 AABB 완화로 정리한다.
+           ⚠️ 종전 방식(셔플 3×2 그리드 셀 + ±25% 지터 + 12px 완화 24회)은 셀 폭(≈445px)이
+           가장 넓은 박스 폭(≈366px)과 비슷해 지터가 셀 경계를 넘겼다 — PC 방문의 31%가
+           26px 미만 간격으로, 모바일 방문의 17%는 아예 겹친 채로 시작했다(1000회 시뮬레이션).
+           무작위 시작(원장 지시 2026-08-01)은 그대로다 — 격자에 스냅하지 않고 균일 랜덤에
+           최소 간격 조건만 얹었다. */
+        const scatter = () => {
+          const placed: FloatState[] = [];
+          [...states]
+            .sort((a, b) => b.w * b.h - a.w * a.h)
+            .forEach((s) => {
+              const maxX = Math.max(W - s.w, 0);
+              const maxY = Math.max(H - s.h, 0);
+              let bestX = 0;
+              let bestY = 0;
+              let bestGap = -Infinity;
+              for (let k = 0; k < 160; k++) {
+                const x = Math.random() * maxX;
+                const y = Math.random() * maxY;
+                let gap = Infinity;
+                for (const p of placed) {
+                  const gx = Math.max(p.x - (x + s.w), x - (p.x + p.w));
+                  const gy = Math.max(p.y - (y + s.h), y - (p.y + p.h));
+                  gap = Math.min(gap, Math.max(gx, gy));
+                }
+                if (gap > bestGap) {
+                  bestGap = gap;
+                  bestX = x;
+                  bestY = y;
+                }
+                if (gap >= SEP_GAP) break;
+              }
+              s.x = bestX;
+              s.y = bestY;
+              placed.push(s);
+            });
+          for (let k = 0; k < 40; k++) {
+            for (let i = 0; i < states.length; i++)
+              for (let j = i + 1; j < states.length; j++) {
+                const a = states[i]!;
+                const b = states[j]!;
+                const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) + SEP_GAP;
+                const oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) + SEP_GAP;
+                if (ox > 0 && oy > 0) {
+                  if (ox < oy) {
+                    const d = (ox / 2) * Math.sign(a.x + a.w / 2 - (b.x + b.w / 2) || 1);
+                    a.x += d;
+                    b.x -= d;
+                  } else {
+                    const d = (oy / 2) * Math.sign(a.y + a.h / 2 - (b.y + b.h / 2) || 1);
+                    a.y += d;
+                    b.y -= d;
+                  }
+                }
+              }
+            clampAll();
+          }
+          states.forEach(apply);
+        };
+        const syncOpen = () => {
+          states.forEach((s) => {
+            const open = s.box.classList.contains('is-open');
+            if (open && !s.open) {
+              // 확장 예상 크기 — 답변 p 는 접힘 중에도 고정 폭으로 레이아웃되어 실측 가능.
+              // 열려 있는 동안에도 부유는 계속(원장 정정 2026-08-01 "멈추지 마, 계속 움직여야
+              // 자연스럽다") — 정지·수납 목표 대신 확장 실측 크기를 경계 계산에 쓰는 것으로
+              // 넘침만 방지한다(경계 스프링이 확장 크기 기준으로 완만히 안쪽 유지).
+              const p = s.box.querySelector<HTMLElement>('.vta-faq-a-in p');
+              const cs = getComputedStyle(s.box);
+              const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+              s.ew = Math.max(s.w, (p?.offsetWidth ?? 0) + padX);
+              s.eh = s.h + (p?.offsetHeight ?? 0) + 15;
+            }
+            s.open = open;
+            s.el.classList.toggle('is-top', open);
+          });
+        };
+        const tick = (t: number) => {
+          raf = 0;
+          const dt = Math.min(Math.max((t - lastT) / 1000, 0), 0.05);
+          lastT = t;
+          const ts = t / 1000;
+          const M = 40; // 경계 스프링 시작 여유(px)
+          // 1패스 — 박스별 자체 속도(부유 + 경계 스프링). 위치는 아직 쓰지 않는다
+          states.forEach((s) => {
+            // 열려 있어도 부유 지속(원장 정정 2026-08-01) — 호버 감속만 유지
+            const goal = s.hov ? 0.15 : 1;
+            s.mul += (goal - s.mul) * Math.min(1, dt * 2.5);
+            // 경계·반발은 열림 상태의 실측 확장 크기 기준 — 열린 박스가 잘리거나 가리지 않게
+            s.bw = s.open ? s.ew : s.w;
+            s.bh = s.open ? s.eh : s.h;
+            s.th += s.rot * dt;
+            const ang =
+              s.th + s.a1 * Math.sin(s.o1 * ts + s.p1) + s.a2 * Math.sin(s.o2 * ts + s.p2);
+            const v = s.spd * s.mul;
+            s.vx = Math.cos(ang) * v;
+            s.vy = Math.sin(ang) * v;
+            if (s.x < M) s.vx += (M - s.x) * 0.25;
+            if (s.x > W - s.bw - M) s.vx -= (s.x - (W - s.bw - M)) * 0.25;
+            if (s.y < M) s.vy += (M - s.y) * 0.25;
+            if (s.y > H - s.bh - M) s.vy -= (s.y - (H - s.bh - M)) * 0.25;
+          });
+          // 2패스 — 쌍별 반발. 두 층위(원장 후속 2026-08-01 "서로 배타적으로 밀려나게"):
+          //  · 닫힘·닫힘 — 근접 회피 밴드(SEP_BAND). 여유가 밴드 안으로 들어오는 순간부터
+          //    침투 깊이의 제곱에 비례해 밀어내고, 맞닿는 지점(pen = SEP_BAND)에서 SEP_MAX
+          //    에 도달한다. 부유 최고속(7px/s)의 합류 속도 14px/s 를 SEP_MAX 34px/s 가
+          //    확실히 이기므로 정면으로 다가와도 글자를 가리기 전에 비켜난다.
+          //    제곱 램프라 밴드 바깥 가장자리에서는 힘이 0 에 수렴 — 툭 튕기는 느낌 없이
+          //    서로 피해 가는 몸짓으로 읽힌다(1000회 시뮬레이션에서 박스가 자체 부유속도의
+          //    1.6배를 넘는 시간은 PC 0.2%·모바일 0.6%로, 종전과 같은 '천천히' 질감 유지).
+          //    ⚠️ 종전 값(여유 6px·게인 0.3/s·캡 12px/s·절반씩)은 절반씩 나누면 박스당
+          //    6px/s 라 부유속도보다 느렸다 — 정면으로 만나면 이길 수 없어 서로 통과했고,
+          //    그 결과 PC 는 체류 시간의 71.7%, 모바일은 99.0%가 겹친 상태였다.
+          //  · 열림·닫힘 — 배타 구역: 닫힌 쪽이 확장 rect(ew/eh) + 여유 8px 와의 겹침이
+          //    완전히 해소될 때까지 게인 1.5/s·캡 70px/s 로 밀려남(질량 0.06:0.94 — 읽는
+          //    박스는 거의 정지). 깊이 비례 속도라 처음엔 캡 속도로 빠르게 빠져나오고
+          //    얕아질수록 지수 감속(easeOut) — 실겹침 해소까지 대략 1~2s.
+          //    탈출 방향은 최소 깊이축 고정이 아니라 '필드 안에서 완전 탈출 가능한 4방향 중
+          //    최단'을 고른다 — 공간이 전부 부족하면(좁은 모바일) 잔여 겹침이 가장 작은
+          //    방향으로만 밀고 부분 겹침 허용(열린 박스가 is-top 이라 읽기는 유지, 클램프에
+          //    눌린 채 속도 합산·클램프 1회 구조라 경계와 싸우는 진동 없음). 직전 프레임
+          //    방향에 0.7 히스테리시스 — 깊이 교차 순간의 방향 덜컥임 방지
+          for (let i = 0; i < states.length; i++)
+            for (let j = i + 1; j < states.length; j++) {
+              const a = states[i]!;
+              const b = states[j]!;
+              const openPair = a.open || b.open; // 아코디언이라 열림은 한 번에 하나
+              const m = openPair ? 8 : SEP_BAND;
+              const ox = Math.min(a.x + a.bw, b.x + b.bw) - Math.max(a.x, b.x) + m;
+              const oy = Math.min(a.y + a.bh, b.y + b.bh) - Math.max(a.y, b.y) + m;
+              if (ox <= 0 || oy <= 0) {
+                if (openPair) (a.open ? b : a).exAx = '';
+                continue;
+              }
+              if (!openPair) {
+                const u = Math.min(ox, oy) / SEP_BAND;
+                const v = Math.min(SEP_MAX * u * u, SEP_HARD);
+                if (ox < oy) {
+                  const sg = Math.sign(a.x + a.bw / 2 - (b.x + b.bw / 2) || 1);
+                  a.vx += v * 0.5 * sg;
+                  b.vx -= v * 0.5 * sg;
+                } else {
+                  const sg = Math.sign(a.y + a.bh / 2 - (b.y + b.bh / 2) || 1);
+                  a.vy += v * 0.5 * sg;
+                  b.vy -= v * 0.5 * sg;
+                }
+                continue;
+              }
+              const o = a.open ? a : b;
+              const c = a.open ? b : a;
+              // 4방향 후보 — need = 탈출에 필요한 이동량, room = 그 방향의 필드 여유
+              const cands: { ax: 'x' | 'y'; dir: number; need: number; room: number }[] = [
+                { ax: 'x', dir: -1, need: ox, room: c.x },
+                { ax: 'x', dir: 1, need: ox, room: W - c.bw - c.x },
+                { ax: 'y', dir: -1, need: oy, room: c.y },
+                { ax: 'y', dir: 1, need: oy, room: H - c.bh - c.y },
+              ];
+              let best = cands[0]!;
+              let bestScore = Infinity;
+              cands.forEach((cd) => {
+                // 완전 탈출 가능하면 need 최단 우선, 전부 불가면 잔여 겹침 최소 방향
+                let score = cd.room >= cd.need ? cd.need : 1e6 + (cd.need - cd.room);
+                if (cd.ax === c.exAx && cd.dir === c.exDir) score *= 0.7;
+                if (score < bestScore) {
+                  bestScore = score;
+                  best = cd;
+                }
+              });
+              c.exAx = best.ax;
+              c.exDir = best.dir;
+              const v = Math.min(best.need * 1.5, 70);
+              if (best.ax === 'x') {
+                c.vx += best.dir * v * 0.94;
+                o.vx -= best.dir * v * 0.06;
+              } else {
+                c.vy += best.dir * v * 0.94;
+                o.vy -= best.dir * v * 0.06;
+              }
+            }
+          // 3패스 — 적분 + 하드 클램프 + 적용
+          states.forEach((s) => {
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+            s.x = Math.min(Math.max(s.x, 0), Math.max(W - s.bw, 0));
+            s.y = Math.min(Math.max(s.y, 0), Math.max(H - s.bh, 0));
+            apply(s);
+          });
+          if (visible && !reduced.matches && !document.hidden)
+            raf = requestAnimationFrame(tick);
+        };
+        const start = () => {
+          if (!raf && ready && visible && !reduced.matches && !document.hidden) {
+            lastT = performance.now();
+            raf = requestAnimationFrame(tick);
+          }
+        };
+        const stopFloating = () => {
+          if (raf) cancelAnimationFrame(raf);
+          raf = 0;
+        };
+        const resetFloating = () => {
+          stopFloating();
+          items.forEach((el) => {
+            el.style.transform = '';
+            el.classList.remove('is-top');
+          });
+          field.classList.remove('vta-free');
+          field.style.height = '';
+          states = [];
+          ready = false;
+        };
+        const init = () => {
+          if (ready || reduced.matches) return;
+          const rect = field.getBoundingClientRect();
+          if (rect.width < 10 || rect.height < 10) return; // 숨김 상태 — 표시 후 IO 에서 재시도
+          field.style.height = `${Math.round(rect.height)}px`;
+          field.classList.add('vta-free');
+          states = items.map((el) => ({
+            el,
+            box: el.querySelector<HTMLElement>('[data-vta-faq]')!,
+            x: 0,
+            y: 0,
+            w: el.offsetWidth,
+            h: el.offsetHeight,
+            th: rand(0, Math.PI * 2),
+            rot: rand(-0.04, 0.04),
+            a1: rand(0.5, 0.9),
+            o1: rand(0.04, 0.09),
+            p1: rand(0, Math.PI * 2),
+            a2: rand(0.7, 1.2),
+            o2: rand(0.1, 0.18),
+            p2: rand(0, Math.PI * 2),
+            spd: rand(3.5, 7),
+            mul: 1,
+            hov: false,
+            open: false,
+            ew: 0,
+            eh: 0,
+            bw: 0,
+            bh: 0,
+            vx: 0,
+            vy: 0,
+            exAx: '' as const,
+            exDir: 0,
+          }));
+          W = field.clientWidth;
+          H = field.clientHeight;
+          scatter();
+          syncOpen();
+          ready = true;
+        };
+        if (fine.matches) {
+          items.forEach((el) => {
+            el.addEventListener('mouseenter', () => {
+              const s = states.find((v) => v.el === el);
+              if (s) s.hov = true;
+            });
+            el.addEventListener('mouseleave', () => {
+              const s = states.find((v) => v.el === el);
+              if (s) s.hov = false;
+            });
+          });
+        }
+        // 확장 토글 동기화 — 버튼 자체 핸들러(위)가 타깃 단계에서 먼저 실행된 뒤
+        // 버블 단계의 이 리스너가 is-open 결과를 상태에 반영한다
+        field.addEventListener('click', () => {
+          if (ready) syncOpen();
+        });
+        // 화면 밖 = 루프 정지(성능), 재진입 시 재개
+        const io = new IntersectionObserver(
+          (entries) => {
+            visible = entries.some((e) => e.isIntersecting);
+            if (visible && !reduced.matches) {
+              init();
+              start();
+            } else stopFloating();
+          },
+          { rootMargin: '120px' }
+        );
+        const enableFloating = () => {
+          if (reduced.matches) return;
+          const rect = field.getBoundingClientRect();
+          visible =
+            !document.hidden && rect.bottom >= -120 && rect.top <= window.innerHeight + 120;
+          init();
+          if (!observing) {
+            io.observe(field);
+            observing = true;
+          }
+          start();
+        };
+        const handleFloatingMotionPreference = () => {
+          if (reduced.matches) resetFloating();
+          else enableFloating();
+        };
+        reduced.addEventListener('change', handleFloatingMotionPreference);
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) stopFloating();
+          else if (!reduced.matches) enableFloating();
+        });
+        handleFloatingMotionPreference();
+        // 뷰포트 폭 급변(브레이크포인트 이동) — 정적 재실측 후 재산포
+        let rw = window.innerWidth;
+        let rt = 0;
+        window.addEventListener('resize', () => {
+          if (reduced.matches || Math.abs(window.innerWidth - rw) < 60) return;
+          window.clearTimeout(rt);
+          rt = window.setTimeout(() => {
+            rw = window.innerWidth;
+            resetFloating();
+            enableFloating();
+          }, 250);
+        });
+      }
+
+      if (fine.matches) {
+        const pars = Array.from(field.querySelectorAll<HTMLElement>('[data-vta-par]'));
+        let tx = 0;
+        let ty = 0;
+        let cx = 0;
+        let cy = 0;
+        let raf = 0;
+        let pointerInside = false;
+        let pointerX = 0;
+        let pointerY = 0;
+        const clearParallax = () => {
+          pars.forEach((p) => {
+            p.style.transform = '';
+          });
+        };
+        const stopParallax = () => {
+          if (raf) cancelAnimationFrame(raf);
+          raf = 0;
+          tx = 0;
+          ty = 0;
+          cx = 0;
+          cy = 0;
+          clearParallax();
+        };
+        const updateParallaxTarget = () => {
+          const r = field.getBoundingClientRect();
+          if (!r.width || !r.height) return false;
+          tx = ((pointerX - r.left) / r.width - 0.5) * 2 * 10;
+          ty = ((pointerY - r.top) / r.height - 0.5) * 2 * 10;
+          return r.bottom > 0 && r.top < window.innerHeight;
+        };
+        const tick = () => {
+          raf = 0;
+          if (reduced.matches) {
+            stopParallax();
+            return;
+          }
+          cx += (tx - cx) * 0.08;
+          cy += (ty - cy) * 0.08;
+          pars.forEach((p) => {
+            const fx = parseFloat(p.dataset.fx || '0');
+            const fy = parseFloat(p.dataset.fy || '0');
+            p.style.transform = `translate(${(cx * fx).toFixed(2)}px, ${(cy * fy).toFixed(2)}px)`;
+          });
+          if (Math.abs(tx - cx) > 0.05 || Math.abs(ty - cy) > 0.05) raf = requestAnimationFrame(tick);
+        };
+        field.addEventListener('mousemove', (e) => {
+          pointerInside = true;
+          pointerX = e.clientX;
+          pointerY = e.clientY;
+          if (reduced.matches || !updateParallaxTarget()) return;
+          if (!raf) raf = requestAnimationFrame(tick);
+        });
+        field.addEventListener('mouseleave', () => {
+          pointerInside = false;
+          if (reduced.matches) {
+            stopParallax();
+            return;
+          }
+          tx = 0;
+          ty = 0;
+          if (!raf) raf = requestAnimationFrame(tick);
+        });
+        const resumeParallax = () => {
+          if (pointerInside && updateParallaxTarget() && !raf)
+            raf = requestAnimationFrame(tick);
+        };
+        const handleParallaxMotionPreference = () => {
+          if (reduced.matches) stopParallax();
+          else resumeParallax();
+        };
+        reduced.addEventListener('change', handleParallaxMotionPreference);
+        handleParallaxMotionPreference();
+      }
+    }
+  }
+</script>

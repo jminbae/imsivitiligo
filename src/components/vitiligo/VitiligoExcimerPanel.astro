@@ -1,0 +1,1510 @@
+---
+import { localeOf, localeUrl } from '../../lib/i18n';
+/* 이 페이지의 언어. 메뉴 데이터가 프론트매터 앞쪽에 있어 **맨 위**에 둔다.
+   'ko' 를 박지 않는다 — 2단계에서 언어가 늘어도 이 파일은 손대지 않는다. 정본: src/lib/i18n.ts */
+const lang = localeOf(Astro.currentLocale);
+/**
+ * VitiligoExcimerPanel — /vitiligo/excimer/ 전용 편집형 본문.
+ * 섹션 1~6은 승인 시안(260806-백반증_엑시머클리닉)을 따르고,
+ * 섹션 7은 주분류별 칼럼 질문·즉답을 공용 FAQ로 연결한다.
+ */
+import VitiligoRelatedColumns from './VitiligoRelatedColumns.astro';
+import ExpandCardRow from '../ui/ExpandCardRow.astro';
+import PagingIndicator from '../ui/PagingIndicator.astro';
+import type { VitiligoSection } from '../../lib/types';
+
+interface Props {
+  section: VitiligoSection;
+  initial: boolean;
+}
+
+const { section, initial } = Astro.props;
+
+const IMG = '/images/vitiligo/excimer';
+
+const STEPS = [
+  {
+    image: `${IMG}/mechanism-1.webp`,
+    title: '자외선이 피부에 닿음',
+    description: '병변 부위에 치료에 필요한 자외선이 닿습니다.',
+  },
+  {
+    image: `${IMG}/mechanism-2.webp`,
+    title: '색소세포가 깨어남',
+    description: '표피의 신호가 모낭의 색소세포 활성화와 이동을 돕습니다.',
+  },
+  {
+    image: `${IMG}/mechanism-3.webp`,
+    title: '색소가 다시 자리 잡음',
+    description: '이동한 색소세포가 병변에 자리 잡으며 색이 돌아옵니다.',
+  },
+] as const;
+
+/* 장비 문안·명칭은 **원장이 직접 다시 쓴 것**이다(2026-08-08 "멘트 이렇게 다 바꿔줘. 내가 새로 썼어").
+   임의로 다듬거나 옛 문안으로 되돌리지 말 것 — 의료 문안이라 표현 하나가 광고 심의 대상이다.
+   ⚠️ device-2 는 종전 이름이 '상반신 광선기기'였으나 사진은 얼굴·목을 덮는 기기다(실물 확인).
+      원장이 '얼굴 광선치료기'로 바로잡은 것이라 사진 교체가 필요 없다.
+      다만 equipment.json 의 같은 장비는 아직 '상반신 광선치료기'로 남아 있다(지점 장비 목록용) —
+      이 페이지만 고친 것이므로 DB 명칭을 함께 바꿀지는 원장 결정 사항이다. */
+const DEVICES = [
+  {
+    image: `${IMG}/device-1.webp`,
+    name: '전신 광선치료기',
+    desc: '좁은파장 자외선B(311nm)를 전신에 조사해 백반증의 자가면역 반응을 억제하고, 멜라닌세포의 증식과 이동을 자극합니다. 몸 전체에 넓게 퍼진 병변에 효과적입니다.',
+  },
+  {
+    image: `${IMG}/device-2.webp`,
+    name: '얼굴 광선치료기',
+    desc: '좁은파장 자외선B를 얼굴과 목에만 선택적으로 조사합니다. 얼굴에 넓게 번지는 활동성 백반증의 자가면역 반응을 억제하여 빠른 색소회복을 유도합니다.',
+  },
+  {
+    image: `${IMG}/device-3.webp`,
+    name: '손발 광선기기',
+    desc: '손과 발의 병변에 자외선을 집중 조사합니다. 손발은 각질층이 두껍고 모낭이 적어 반응이 더딘 부위인 만큼, 전체적으로 충분한 에너지를 전달하면서 꾸준히 치료를 이어가는 것이 중요합니다.',
+  },
+  {
+    image: `${IMG}/device-4.webp`,
+    name: '엑시머 레이저',
+    desc: '308nm 레이저를 병변에만 조준해 정상 피부의 불필요한 자외선 노출을 최소화합니다. 좁은 범위에 높은 에너지를 집중하므로 반응이 빠르게 나타나며, 눈가나 입술 주변처럼 좁은 부위도 정밀하게 치료할 수 있습니다.',
+  },
+  {
+    image: `${IMG}/device-5.webp`,
+    name: '팔라스 프리미엄',
+    desc: '국내에서 처음 개발된 311nm 티타늄사파이어 레이저로, 백반증 병변에만 고출력으로 집중 조사합니다. 엑시머 레이저와 함께 병변만 겨냥하는 표적 치료 장비로, 병변의 위치와 범위에 따라 선택해 사용합니다.',
+  },
+  {
+    image: `${IMG}/device-6.webp`,
+    name: 'UVA1 광선치료기',
+    desc: '340~400nm 장파장 자외선A로, 표피를 지나 진피 깊은 층까지 도달합니다. 자외선B가 닿기 어려운 깊이의 멜라닌세포까지 자극해 색소 침착을 유도합니다.',
+  },
+] as const;
+---
+
+<div class:list={['vte', initial && 'animate-fade-up']}>
+  <section class="vte-section vte-intro bleed" data-vte-section="1">
+    <div class="wrapper--content vte-container vte-pad">
+      <header class="vte-intro-head" data-vte-reveal>
+        <div>
+          <p class="vte-kicker">힐하우스피부과 엑시머 클리닉</p>
+          <h2 class="vte-title vte-title--large">
+            빛으로 되살리는 피부 색소<br />
+            백반증 광선치료
+          </h2>
+        </div>
+        <p class="vte-body vte-intro-copy vt-left-copy">
+          백반증 광선치료란, 백반증 치료에 유효한 특정 자외선만을 조사해 멜라닌세포의 증식과 이동을 촉진하는 치료입니다. 좁은띠자외선(NBUVB), 엑시머, 팔라스 레이저 등을 활용하여 색소 재생을 유도하는 가장 표준적인 치료법입니다.
+        </p>
+      </header>
+      {/* 사진 고정(원장 지시 2026-08-07 §1-3 "박스 안 사진은 스크롤에 따라 이동하지 않도록 고정") —
+          '백반증이란' §2(.vta-s2)와 같은 background-attachment: fixed 관용구. img 로는 낼 수 없는
+          연출이라 배경 이미지 + role="img"/aria-label 로 대체하고 대체텍스트를 유지한다.
+          터치·모션축소 환경은 scroll 유지(iOS fixed 배경 깨짐 회피 — vta-s2 주석과 동일 근거). */}
+      <div
+        class="vte-hero"
+        data-vte-reveal
+        style={`--vte-delay: 80ms; background-image: url('${IMG}/04-1_엑시머클리닉.png')`}
+        role="img"
+        aria-label="백반증 광선치료를 상징하는 빛"
+      >
+      </div>
+    </div>
+  </section>
+
+  <section class="vte-section vte-mechanism bleed" data-vte-section="2">
+    <div class="wrapper--content vte-container vte-pad">
+      <header class="vte-centered" data-vte-reveal>
+        <p class="vte-kicker">힐하우스피부과 엑시머 클리닉</p>
+        <h2 class="vte-title">색소가 되살아나는<span class="vte-mobile-break"></span> 광선치료 메커니즘</h2>
+        <p class="vte-body vte-lead">
+          특정 자외선이 모낭을 자극해 멜라닌 색소세포의 활성화와 이동을 유도합니다.<br />
+          이동한 색소가 백반증 부위에 정착하면서 자연스럽게 피부 색이 복원됩니다.
+        </p>
+      </header>
+
+      <ol class="vte-step-grid" aria-label="광선치료 메커니즘 3단계">
+        {
+          STEPS.map((step, index) => (
+            <li data-vte-reveal style={`--vte-delay: ${index * 80}ms`}>
+              <figure>
+                <img
+                  src={step.image}
+                  alt={step.title}
+                  width="856"
+                  height="600"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </figure>
+              <p class="vte-step-label">STEP {index + 1}</p>
+              <h3>{step.title}</h3>
+              <p>{step.description}</p>
+              {index < STEPS.length - 1 && (
+                <img
+                  class="vte-step-arrow"
+                  src={`${IMG}/arrow-step.svg`}
+                  alt=""
+                  width="24"
+                  height="24"
+                  aria-hidden="true"
+                />
+              )}
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section class="vte-section vte-devices bleed" data-vte-section="3">
+    <div class="wrapper--content vte-container vte-pad">
+      <header class="vte-centered" data-vte-reveal>
+        <p class="vte-kicker">힐하우스피부과 엑시머 클리닉</p>
+        <h2 class="vte-title">광선치료의<span class="vte-mobile-break"></span> 종류 및 권장대상</h2>
+        <div class="vte-nbuvb">
+          <h3>좁은띠 자외선치료 (NBUVB)</h3>
+          {/* 원장 지시 2026-08-08 — '부작용 부담이 적어 … 소아나 임신·수유부도 안전하게 고려할 수
+              있습니다.' 한 줄 삭제. 되살리지 말 것. 이에 따라 <br /> 도 함께 걷어냈다. */}
+          <p>넓은 부위의 병변을 한 번에 치료하고 번짐을 막아주는 표준 치료법입니다. (주 2회)</p>
+        </div>
+      </header>
+
+      {/* 개수는 DEVICES 에서 파생한다 — 손으로 '5종'이라 적어 두면 장비가 늘 때 조용히 어긋난다
+          (실제로 UVA1 을 더할 때 이 라벨만 5종으로 남아 있었다). */}
+      <div
+        class="vte-device-row"
+        aria-label={`광선치료 기기 ${DEVICES.length}종`}
+        data-vte-reveal
+        style={`--vte-delay: 60ms; --vte-card-n: ${DEVICES.length}`}
+      >
+        {/* 부제 TYPE 01~ (원장 지시 2026-08-07 §3-1) — 카드 순번. 색은 eyebrowColor 로 전달 */}
+        <ExpandCardRow
+          cards={DEVICES.map((device, index) => ({
+            src: device.image,
+            alt: `${device.name} 장비`,
+            width: 528,
+            height: 720,
+            eyebrow: `TYPE 0${index + 1}`,
+            title: device.name,
+            body: device.desc,
+            label: device.name,
+          }))}
+          variant="fill"
+          eyebrowColor="#97C0DF"
+          bleed
+          marquee
+          pinHover
+        />
+      </div>
+    </div>
+  </section>
+
+  <section class="vte-section vte-duration bleed" data-vte-section="4">
+    <div class="wrapper--content vte-container vte-pad">
+      <div class="vte-duration-head">
+        <header data-vte-reveal>
+          <p class="vte-kicker">힐하우스피부과 엑시머 클리닉</p>
+          <h2 class="vte-title">
+            꾸준함이 만드는 변화,<br />
+            치료 기간과 경과
+          </h2>
+          <p class="vte-body vte-duration-copy vt-left-copy">
+            <span>광선치료는 꾸준함이 중요한 치료입니다.</span>
+            <span>대개 6개월에서 1년가량 꾸준히 치료하며, 부위에 따라 반응 속도가 다릅니다.</span>
+            <span>적어도 3개월 이상 치료해 보아야 반응을 가늠할 수 있습니다.</span>
+            <span>색소는 모낭 주위, 병변 가장자리, 또는 병변 전반에 걸쳐 조금씩 돌아오는 것으로 관찰됩니다.</span>
+            <span>반응은 부위와 개인에 따라 달라, 경과를 보며 계획을 조율합니다.</span>
+          </p>
+        </header>
+
+        <aside class="vte-notice" data-vte-reveal style="--vte-delay: 80ms">
+          <div class="vte-notice-title">
+            <img src={`${IMG}/notice-blue.svg`} alt="" width="28" height="28" aria-hidden="true" />
+            <h3>치료 전 알아두기</h3>
+          </div>
+          <p>
+            광선치료의 안전성은 대체로 잘 알려져 있으나, 장기간 누적 조사와 관련한 주의가 보고되기도 합니다. 소아이거나 임신 중이라면 진료 시 미리 알려 주시면 그에 맞춰 계획합니다.
+          </p>
+        </aside>
+      </div>
+
+      <div id="vte-before-after" class="vte-ba-grid" aria-label="광선치료 전후 사진" tabindex="0">
+        {
+          [1, 2, 3, 4, 5, 6].map((n, index) => (
+            <figure class="vte-ba-set" data-vte-ba-slide data-vte-reveal style={`--vte-delay: ${(index % 2) * 80}ms`}>
+              <div class="vte-ba-pair">
+                <img
+                  class="vte-ba-image"
+                  src={`${IMG}/ba-0${n}-before.jpg`}
+                  alt={`광선치료 전 ${n}`}
+                  width="345"
+                  height="240"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <img
+                  class="vte-ba-image"
+                  src={`${IMG}/ba-0${n}-after.jpg`}
+                  alt={`광선치료 후 ${n}`}
+                  width="345"
+                  height="240"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <img
+                  class="vte-ba-arrow"
+                  src={`${IMG}/arrow-before-after.svg`}
+                  alt=""
+                  width="44"
+                  height="44"
+                  aria-hidden="true"
+                />
+              </div>
+              <figcaption class="sr-only">광선치료 전후 비교 {n}</figcaption>
+            </figure>
+          ))
+        }
+      </div>
+      <div class="vte-ba-pager">
+        <PagingIndicator total={6} scrollRailId="vte-before-after" slideSelector="[data-vte-ba-slide]" scrollByPage previousLabel="이전 전후 사진 보기" nextLabel="다음 전후 사진 보기" ariaLabel="광선치료 전후 사진 탐색" />
+      </div>
+    </div>
+  </section>
+
+  <section class="vte-section vte-response bleed" aria-labelledby="vte-response-title">
+    <div class="wrapper--content vte-container vte-pad vte-response-inner">
+      <header data-vte-reveal>
+        <p class="vte-kicker">Response Check</p>
+        <h2 id="vte-response-title" class="vte-title vte-added-title">치료 반응은<br />부위마다 다르게 나타납니다</h2>
+        <p class="vte-body">얼굴과 목은 비교적 반응을 기대하기 쉬운 편이지만, 손끝·발끝처럼 모낭이 적은 부위는 더 오랜 시간이 필요하거나 반응이 제한적일 수 있습니다.</p>
+      </header>
+      <div class="vte-response-copy">
+        <p class="vte-response-lede" data-vte-reveal>반응이 적어 보일 때에는 치료를 바로 포기하기보다 다음 네 가지를 차례로 점검합니다.</p>
+        <ol>
+          <li data-vte-reveal><span aria-hidden="true">01</span><div><h3>사진으로 실제 변화를 비교합니다</h3><p>같은 조건의 사진에서 병변 경계와 모낭 주변 색소가 달라졌는지 확인합니다.</p></div></li>
+          <li data-vte-reveal><span aria-hidden="true">02</span><div><h3>치료 횟수와 간격을 살핍니다</h3><p>계획한 간격이 유지됐는지, 치료가 길게 중단된 기간은 없었는지 함께 봅니다.</p></div></li>
+          <li data-vte-reveal><span aria-hidden="true">03</span><div><h3>병의 활동성을 다시 확인합니다</h3><p>새 병변이 생기는 시기에는 색소회복과 함께 진행을 줄이는 치료가 필요한지 평가합니다.</p></div></li>
+          <li data-vte-reveal><span aria-hidden="true">04</span><div><h3>부위별 목표와 병행 치료를 조율합니다</h3><p>손발처럼 반응이 더딘 부위는 활동성이 있다면 진행 억제를 함께 고려하고, 안정된 병변은 치료 반응과 현실적인 목표를 조율합니다.</p></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="vte-section vte-preparation bleed" data-vte-section="5">
+    <div class="wrapper--content vte-container vte-pad vte-prep-grid">
+      <div data-vte-reveal>
+        <header>
+          <p class="vte-kicker">힐하우스피부과 엑시머 클리닉</p>
+          <h2 class="vte-title">치료 당일 준비사항</h2>
+          <h3 class="vte-prep-subtitle">치료 당일 준비</h3>
+          <div class="vte-body vte-prep-copy vt-left-copy">
+            <p>광선치료는 자외선 파장의 빛을 이용하기 때문에, 빛이 피부에 잘 닿도록 준비하는 것이 중요합니다. 치료 부위의 자외선 차단제와 화장은 번거롭더라도 꼭 지우고 오시는 것이 좋습니다. 빛의 일부가 가려질 수 있습니다.</p>
+            <p>아침에 치료를 받는다면, 바르는 약(연고)은 치료가 끝난 뒤에 바르는 편이 좋습니다. 연고로 피부가 번들거리면 빛이 일부 반사될 수 있습니다.</p>
+            <p>치료 부위와 강도는 개인마다 다르므로, 피부 상태나 컨디션 변화가 있으면 진료 시 알려 주세요.</p>
+          </div>
+        </header>
+
+      </div>
+        <ol class="vte-accordion" data-vte-accordion>
+          <li>
+            <h3>
+              <button
+                type="button"
+                id="vte-acc-trigger-1"
+                data-vte-acc-trigger
+                aria-expanded="true"
+                aria-controls="vte-acc-panel-1"
+              >
+                <span class="vte-acc-num" aria-hidden="true">01</span>
+                <span>물집이 생겼을 때</span>
+                <span class="vte-acc-plus" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div
+              class="vte-acc-panel"
+              id="vte-acc-panel-1"
+              data-vte-acc-panel
+              role="region"
+              aria-labelledby="vte-acc-trigger-1"
+            >
+              <div>
+                <p>광선치료 뒤 드물게 물집이 생길 수 있습니다. 크기와 상태에 따라 대처가 다르므로, 가능하면 병원에 오셔서 봐 드리는 것이 좋습니다. 바로 오기 어렵다면 우선 냉찜질을 하고, 터뜨리지 않은 채 이차 감염이 생기지 않도록 관리해 주세요.</p>
+              </div>
+            </div>
+          </li>
+          <li>
+            <h3>
+              <button
+                type="button"
+                id="vte-acc-trigger-2"
+                data-vte-acc-trigger
+                aria-expanded="true"
+                aria-controls="vte-acc-panel-2"
+              >
+                <span class="vte-acc-num" aria-hidden="true">02</span>
+                <span>약물 병행</span>
+                <span class="vte-acc-plus" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div
+              class="vte-acc-panel"
+              id="vte-acc-panel-2"
+              data-vte-acc-panel
+              role="region"
+              aria-labelledby="vte-acc-trigger-2"
+            >
+              <div>
+                <p>
+                  광선치료는 바르는 약·먹는 약과 함께 진행하기도 합니다. 병행하는 약물의 종류와 방법은
+                  <a href={localeUrl(lang, 'vitiligo/medication/')}>약물 치료 페이지</a>에서 안내합니다.
+                </p>
+              </div>
+            </div>
+          </li>
+        </ol>
+    </div>
+  </section>
+
+  <section class="vte-section vte-team bleed" data-vte-section="6" aria-labelledby="vte-team-title">
+    <div class="vte-team-media" aria-hidden="true">
+      <img src={`${IMG}/04-6.jpg`} alt="" loading="lazy" decoding="async" />
+      <div></div>
+    </div>
+    <div class="wrapper--content vte-container vte-pad vte-team-grid">
+      <header data-vte-reveal>
+        <p class="vte-kicker">힐하우스피부과 엑시머 클리닉</p>
+        <h2 id="vte-team-title">
+          효과적인 광치료를<span class="vte-mobile-break"></span> 꾸준히 연구해온<br />
+          힐하우스 전문 의료진
+        </h2>
+        <p class="vt-left-copy">
+          힐하우스피부과는 효과적인 피부질환의 광선 치료법을 꾸준히 연구해온 피부과 전문의들이 직접 진료합니다.
+        </p>
+      </header>
+
+      <div>
+        <dl class="vte-stats" aria-label="광선치료 연구 통계">
+          <div class="vte-stat" data-vte-reveal style="--vte-delay: 80ms">
+            <dt>자외선치료<br />12개월 총 치료 성공률</dt>
+            <dd>
+              <span data-vte-count data-target="35.7" data-suffix="%" aria-hidden="true">35.7%</span>
+              <span class="sr-only">35.7%</span>
+            </dd>
+          </div>
+          <div class="vte-stat" data-vte-reveal style="--vte-delay: 160ms">
+            <dt>얼굴과 목<br />6개월 치료성공률</dt>
+            <dd>
+              <span data-vte-count data-target="44.2" data-suffix="%" aria-hidden="true">44.2%</span>
+              <span class="sr-only">44.2%</span>
+            </dd>
+          </div>
+        </dl>
+        <p class="vte-stat-note">치료 결과는 개인의 상태와 부위에 따라 다를 수 있습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <div data-vte-section="7" data-vte-reveal>
+    <VitiligoRelatedColumns sectionId={section.id} />
+  </div>
+</div>
+
+<style>
+  .vte {
+    --vte-ink: var(--color-ink);
+    --vte-brand: #6899C0;
+    color: var(--vte-ink);
+  }
+  .vte-section {
+    position: relative;
+    overflow: hidden;
+  }
+  .vte-preparation {
+    background: #FFFFFF;
+  }
+  /* ── §1 배경 = '백반증이란' §1(.vta-s1)과 같은 그림 (원장 지시 2026-08-07 §1-2) ──
+     원본 선언은 `radial-gradient(37.6% 45.86% at 49.12% 100%, …)` + `transform: rotate(180deg)`
+     두 줄이다. 여기서는 회전을 쓰지 않는다 — 회전한 레이어는 스태킹 컨텍스트를 만들어
+     자식 클리핑·여백 사고를 부르고, 폭이 달라질 때 기준이 흔들린다(원장 지시 명시).
+     180° 회전은 박스 안 좌표를 (x, y) → (100 − x, 100 − y) 로 옮기는 것과 정확히 같고,
+     `37.6% 45.86%` 는 가로/세로 반지름이라 축이 서로 바뀌지 않아 회전해도 그대로다.
+       중심 49.12% 100%  →  (100 − 49.12)% (100 − 100)%  =  50.88% 0%
+     즉 아래 한 줄이 회전 결과와 픽셀 단위로 같은 그림이다(전부 % 라 폭이 달라져도 유지). */
+  .vte-intro {
+    background: radial-gradient(37.6% 45.86% at 50.88% 0%, #C3DEF1 0%, #FFFFFF 100%);
+  }
+  .vte-container {
+    position: relative;
+    z-index: 1;
+  }
+  .vte-pad {
+    padding-block: 140px;
+  }
+  .vte-kicker {
+    margin: 0 0 10px;
+    color: var(--vte-brand);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+  .vte-title {
+    margin: 0;
+    color: var(--vte-ink);
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 54px;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .vte-title--large {
+    font-size: 40px;
+    line-height: 60px;
+  }
+  .vte-body {
+    margin: 0;
+    color: var(--vte-ink);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 28px;
+    word-break: keep-all;
+  }
+  .vte-intro-head {
+    display: grid;
+    grid-template-columns: minmax(0, 690px) minmax(0, 690px);
+    gap: 20px;
+    align-items: start;
+  }
+  .vte-intro-copy {
+    padding-top: 30px;
+  }
+  .vte-hero {
+    aspect-ratio: 1400 / 300;
+    margin: 60px 0 0;
+    overflow: hidden;
+    /* 원장 지시 2026-08-07 §1-1 — 사진 모서리 20 */
+    border-radius: 20px;
+    background-color: #0A1730;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    /* 기본은 scroll — 터치·모션축소 기기에서 fixed 배경이 깨지거나 리페인트가 과해진다 */
+    background-attachment: scroll;
+  }
+  /* 데스크톱 정밀 포인터에서만 '스크롤에 따라 움직이지 않는' 고정 배경 (vta-s2 와 동일 게이트) */
+  @media (min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .vte-hero {
+      background-attachment: fixed;
+    }
+  }
+  .vte-centered {
+    text-align: center;
+  }
+  .vte-lead {
+    margin-top: 30px;
+  }
+
+  .vte-mechanism {
+    background: #DFECF6;
+  }
+  .vte-step-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 428px));
+    gap: 58px;
+    margin: 60px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .vte-step-grid li {
+    position: relative;
+    min-width: 0;
+    text-align: center;
+  }
+  .vte-step-label {
+    margin: 0 0 12px;
+    color: #365F7D;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+    letter-spacing: 0.08em;
+  }
+  .vte-step-grid figure {
+    aspect-ratio: 428 / 300;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 20px;
+    background: #FFFFFF;
+  }
+  .vte-step-grid figure img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .vte-step-grid h3 {
+    margin: 24px 0 0;
+    color: var(--vte-ink);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 28px;
+  }
+  .vte-step-grid li > p:last-of-type {
+    margin: 8px auto 0;
+    max-width: 360px;
+    color: #4D5963;
+    font-size: 14px;
+    line-height: 24px;
+    word-break: keep-all;
+  }
+  .vte-step-arrow {
+    position: absolute;
+    top: 168px;
+    right: -41px;
+    width: 24px;
+    height: 24px;
+    transform: rotate(180deg);
+  }
+
+  .vte-devices {
+    background: #FAF9F7;
+  }
+  .vte-nbuvb {
+    margin-top: 30px;
+  }
+  .vte-nbuvb h3 {
+    margin: 0;
+    color: var(--vte-ink);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 28px;
+  }
+  .vte-nbuvb p {
+    margin: 18px 0 0;
+    color: var(--vte-ink);
+    font-size: 16px;
+    line-height: 28px;
+    word-break: keep-all;
+  }
+  .vte-nbuvb strong {
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+  /* ── §3 장비 카드 (원장 확정 치수 2026-08-07): 기본 264×360 · 호버는 가로만 380 ──
+     기본 상태가 컨테이너를 정확히 채우고, 호버 확장분(+116)은 좌우로 컨테이너 밖(페이지 여백)
+     으로 흘러나간다 — 칸 폭을 고정(flex-shrink:0)했기 때문에 다른 카드는 줄지 않고 '간격을
+     유지한 채 밀려난다'. justify-content:center 라 밀림이 좌우 대칭이다.
+     확정 치수는 **5장 기준**이었다(5 × 264 + 간격 4 × 20 = 1400 = 컨테이너 폭).
+     ⚠️ 화면이 좁으면 밀려난 카드가 화면 밖으로 나간다 —
+       그 아래에서는 아래 min() 이 같은 비율(264:360)로 줄여 항상 화면 안에 들어오게 한다. */
+  .vte-device-row {
+    --vte-card-w: 264px;
+    --vte-card-h: 360px;
+    --vte-card-open-w: 380px;
+    --vte-card-gap: 20px;
+    margin-top: 60px;
+  }
+  @media (min-width: 768px) {
+    .vte-device-row {
+      /* n·w + 간격 (n-1)·20 + 확장분 116 ≤ 100vw 를 만족하는 최대 폭(상한 = 원장 확정 264).
+         ⚠️ 장수를 여기에 **적지 말 것** — 종전에는 `/ 5` 로 박혀 있어서 UVA1 을 더한 순간
+            여섯째 카드가 화면 밖으로 넘칠 상태였다. 장수는 마크업이 --vte-card-n 으로 넘기고
+            (DEVICES.length 에서 파생), 이 식은 그 값만 읽는다. 장비가 늘거나 줄어도 그대로 맞는다. */
+      --vte-card-w: min(
+        264px,
+        calc(
+          (100vw - (var(--vte-card-n) - 1) * var(--vte-card-gap) - 116px) / var(--vte-card-n)
+        )
+      );
+      --vte-card-h: calc(var(--vte-card-w) * 360 / 264);
+      --vte-card-open-w: calc(var(--vte-card-w) + 116px);
+    }
+  }
+  /* ⚠️ 이 행 규칙은 PC 전용이다 — 반드시 게이트를 유지할 것(원장 실기기 제보 2026-08-07:
+     "탭한 카드가 화면 왼쪽으로 잘려 나간다").
+     게이트가 없으면 justify-content:center 가 모바일까지 내려오는데, 모바일은 장비 카드
+     (220 × n + 간격 14 × (n-1) + 좌우 여백 40)가 375px 행을 넘치는 가로 스크롤 리스트다. 넘치는
+     플렉스 행을 center 로 정렬하면 넘침이 좌우로 반씩 갈려 앞선 칸들의 offsetLeft 가 음수가
+     된다(실측 −410 / −176) = 스크롤 원점 0 의 왼쪽 = 스크롤로 영영 도달 불가(1·2번 카드가
+     보이지 않았다). 게다가 공용 엔진 lib/expandRow 의 centerCell 은 "칸 offset =
+     paddingLeft + i×(칸폭+gap)" 을 전제로 목표 scrollLeft 을 계산하므로 이 음수 시프트
+     (430px)만큼 전부 어긋나 목표가 최대 스크롤 밖으로 나가 클램프됐다 — 그래서 탭한 카드가
+     중앙이 아니라 왼쪽으로 잘린 채 멈췄다. 모바일(<768)은 아래 전용 블록이 담당한다. */
+  @media (min-width: 768px) {
+    .vte-device-row :global(.ecr-row.ecr-fill) {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+  }
+  .vte-device-row :global(.ecr-cell) {
+    min-width: 0;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+  }
+  /* ⚠️ 특이도 규약 — ExpandCardRow 의 스타일 시트가 이 패널보다 **뒤에** 실린다(빌드 산출물
+     확인 2026-08-07: 패널 청크 → ExpandCardRow 청크 순). Astro 스코프가 각 compound 에 속성
+     선택자를 붙여 `.ecr-fill[cid] .ecr-cell[cid]` 가 이미 (0,4,0) 이므로 `.vte-device-row
+     :global(.ecr-fill .ecr-cell)`(0,4,0) 은 **동률로 밀린다**. 그래서 여기서는 항상
+     `.ecr-row` 를 한 겹 더 붙여 이긴다(모바일 블록이 쓰던 문법과 동일). 값이 안 먹으면
+     선택자에서 `.ecr-row` 를 빼먹었는지부터 볼 것 — 지우거나 약화하지 말 것. */
+  /* 칸 폭 — 기본/활성/호버. 모바일(<768)은 아래 전용 블록이 담당하므로 여기서 게이트한다 */
+  @media (min-width: 768px) {
+    .vte-device-row :global(.ecr-row.ecr-fill .ecr-cell) {
+      flex: 0 0 var(--vte-card-w);
+    }
+    .vte-device-row :global(.ecr-row.ecr-fill .ecr-cell.is-active) {
+      flex: 0 0 var(--vte-card-open-w);
+    }
+  }
+  @media (hover: hover) and (min-width: 768px) {
+    .vte-device-row
+      :global(.ecr-row.ecr-fill:not(.ecr-pinlock.has-open):not(.is-hover-locked) .ecr-cell:hover) {
+      flex: 0 0 var(--vte-card-open-w);
+    }
+  }
+  /* 카드 세로는 360 고정이 원칙(호버해도 안 변한다). 다만 승인 문안 중 '엑시머 레이저'
+     설명만 32 여백 안 16/28 로 360 을 넘겨 — 클리핑 대신 그 카드만 자라게 둔다
+     (종전 min-height:300 체계 그대로. 값만 360 으로 올림) */
+  .vte-device-row :global(.ecr-row .ecr-card),
+  .vte-device-row :global(.ecr-row.ecr-fill .ecr-card) {
+    height: auto;
+    min-height: var(--vte-card-h);
+    flex: 1 0 auto;
+    border-radius: 20px;
+    background: #FFFFFF;
+  }
+  .vte-device-row :global(.ecr-fig) {
+    object-fit: contain;
+    background: #FFFFFF;
+  }
+  /* 호버 음영 — 원장 지시 2026-08-07 §3-2 지정값 그대로.
+     ⚠️ 같은 지시의 텍스트 색(#ffffff)은 이 음영 위에서 대비 1.06:1 이라 글자가 사라진다.
+       음영 값을 지시대로 두고 제목·본문은 잉크(#292A2B)를 유지했다 — 원장 확인 필요 */
+  .vte-device-row :global(.ecr-ov) {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #F4EFE9 71.44%);
+    border-radius: 20px;
+  }
+  /* 사방 32 여백 · 하단 정렬(ExpandCardRow 기본) + 제목↔내용 20.
+     min-width = 확장 폭 — 축소 중 재줄바꿈 방지(ExpandCardRow §5 관용구) */
+  .vte-device-row :global(.ecr-text) {
+    padding: 32px;
+    --e-body-mt: 20px;
+  }
+  /* 확장 폭 고정은 태블릿 구간의 ExpandCardRow 재설정(.ecr-fill .ecr-text{min-width:0})보다
+     특이도가 높아야 살아남는다 — .ecr-row 한 겹 추가 */
+  .vte-device-row :global(.ecr-row.ecr-fill .ecr-text) {
+    min-width: var(--vte-card-open-w);
+  }
+  .vte-device-row :global(.ecr-cell.is-active .ecr-text) {
+    position: relative;
+    min-height: var(--vte-card-h);
+  }
+  .vte-device-row :global(.ecr-row:not(.ecr-pinlock.has-open):not(.is-hover-locked) .ecr-cell:hover .ecr-text) {
+    position: relative;
+    min-height: var(--vte-card-h);
+  }
+  .vte-device-row :global(.ecr-body) {
+    overflow: visible;
+  }
+  /* 카드 아래 20 지점의 유형 이름 — 활성만 잉크, 나머지는 회색(원장 지시 2026-08-07 §3-3).
+     종전에는 활성 카드의 라벨을 숨겼는데(opacity 0), 이제는 색으로만 구분한다 */
+  .vte-device-row :global(.ecr-name) {
+    margin-top: 20px;
+    color: #9FAAB5;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+    opacity: 1;
+    /* 카드 밖 라벨 — 색만 바뀌므로 --motion-tint(종전 0.3s). About §5·§4 라벨과 한 값
+       (원장 지시 2026-09-04 「값 일관성」). 카드 확장 리듬은 그대로 둔다. */
+    transition: color var(--motion-tint) var(--ease-editorial);
+  }
+  .vte-device-row :global(.ecr-row.ecr-fill .ecr-cell.is-active .ecr-name) {
+    color: var(--color-ink);
+    opacity: 1;
+  }
+  @media (hover: hover) and (min-width: 768px) {
+    /* ExpandCardRow 의 호버 라벨 규칙(흰색)은 compound 마다 스코프 속성이 붙어 특이도가
+       (0,10,0) 이라 이 파일 선택자로는 동률까지가 한계다. about §5 가 같은 이유로 쓴
+       !important 선례를 따른다(VitiligoAboutPanel .vta-s5-wrap 호버 라벨 주석 참조). */
+    .vte-device-row
+      :global(.ecr-row.ecr-fill:not(.ecr-pinlock.has-open):not(.is-hover-locked) .ecr-cell:hover .ecr-name) {
+      color: var(--color-ink) !important;
+    }
+  }
+
+  .vte-duration {
+    background: linear-gradient(180deg, #FFFFFF 0%, #F0F5F9 42.31%, #C1D9E8 100%);
+  }
+  .vte-duration-head {
+    display: grid;
+    grid-template-columns: minmax(0, 690px) minmax(0, 690px);
+    gap: 20px;
+    align-items: end;
+  }
+  .vte-duration-copy {
+    display: flex;
+    flex-direction: column;
+    margin-top: 30px;
+  }
+  .vte-notice {
+    width: min(690px, 100%);
+    min-height: 164px;
+    padding: 30px;
+    border-radius: 16px;
+    /* 원장 지시 2026-08-07 §4 — #6899C0 투명도 10% */
+    background: rgb(104 153 192 / 0.1);
+    backdrop-filter: blur(10px);
+  }
+  .vte-notice-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .vte-notice-title img {
+    width: 28px;
+    height: 28px;
+  }
+  .vte-notice h3 {
+    margin: 0;
+    color: #66727C;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 28px;
+  }
+  .vte-notice p {
+    margin: 18px 0 0;
+    color: var(--vte-ink);
+    font-size: 16px;
+    line-height: 28px;
+    word-break: keep-all;
+  }
+  .vte-ba-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 690px));
+    gap: 20px;
+    margin-top: 60px;
+  }
+  .vte-ba-set {
+    aspect-ratio: 690 / 240;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+  .vte-ba-pair {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+  }
+  .vte-ba-image {
+    width: 50%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .vte-ba-arrow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
+  .vte-prep-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 690px) minmax(0, 690px);
+    gap: 20px;
+    align-items: center;
+  }
+  .vte-prep-subtitle {
+    margin: 40px 0 0;
+    color: var(--vte-ink);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 28px;
+  }
+  .vte-prep-copy {
+    margin-top: 18px;
+  }
+  .vte-prep-copy p {
+    margin: 0;
+  }
+  .vte-prep-copy p + p {
+    margin-top: 10px;
+  }
+  /* 원장 지시 2026-08-07 §5 — 사진 가로 630. 시안(260806-백반증_엑시머클리닉.png) 실측상
+     오른쪽 끝이 컨테이너 우변에 맞춰져 있어 열 안에서 우측 정렬한다(690 열 − 630 = 60 좌측 여백) */
+  .vte-prep-placeholder {
+    aspect-ratio: 690 / 610;
+    width: min(630px, 100%);
+    margin-left: auto;
+    background: #E2E2E2;
+  }
+  .vte-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 40px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .vte-accordion li {
+    overflow: hidden;
+    border-radius: 36px;
+    background: #FFFFFF;
+    box-shadow: 0 6px 21.5px rgb(157 173 185 / 0.25);
+  }
+  .vte-accordion h3 {
+    margin: 0;
+  }
+  .vte-accordion button {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 24px;
+    gap: 16px;
+    align-items: center;
+    width: 100%;
+    min-height: 72px;
+    padding: 0 24px 0 15px;
+    color: var(--vte-ink);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 28px;
+    text-align: left;
+  }
+  .vte-acc-num {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 50%;
+    background: #EBF5FC;
+    color: var(--vte-brand);
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .vte-acc-plus {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    color: var(--vte-brand);
+  }
+  .vte-acc-plus::before,
+  .vte-acc-plus::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 1.5px;
+    background: currentColor;
+    content: '';
+    transform: translate(-50%, -50%);
+    transition: transform 350ms var(--ease-editorial);
+  }
+  .vte-acc-plus::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+  .vte-accordion li.is-open .vte-acc-plus::after {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  .vte-acc-panel {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .vte-acc-panel > div {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .vte-acc-panel p {
+    margin: 0 15px 15px;
+    padding: 20px 24px;
+    border-radius: 24px;
+    background: #FAF9F8;
+    color: var(--vte-ink);
+    font-size: 15px;
+    line-height: 26px;
+    word-break: keep-all;
+  }
+  .vte-acc-panel a {
+    color: var(--vte-brand);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .vte-accordion.is-ready .vte-acc-panel {
+    transition: grid-template-rows 500ms var(--ease-editorial);
+  }
+  .vte-accordion.is-ready li:not(.is-open) .vte-acc-panel {
+    grid-template-rows: 0fr;
+  }
+
+  .vte-team {
+    isolation: isolate;
+    color: #FFFFFF;
+  }
+  .vte-team-media,
+  .vte-team-media img,
+  .vte-team-media div {
+    position: absolute;
+    inset: 0;
+  }
+  .vte-team-media {
+    z-index: -1;
+    overflow: hidden;
+    background: #1C2126;
+  }
+  .vte-team-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(10px);
+    transform: scale(1.08);
+  }
+  .vte-team-media div {
+    background: rgb(21 26 31 / 0.8);
+  }
+  .vte-team-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 690px) minmax(0, 690px);
+    gap: 20px;
+    align-items: center;
+  }
+  .vte-team h2 {
+    margin: 0;
+    color: #FFFFFF;
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 54px;
+    letter-spacing: -0.02em;
+  }
+  .vte-team header p {
+    margin: 30px 0 0;
+    color: rgb(255 255 255 / 0.5);
+    font-size: 16px;
+    line-height: 28px;
+    word-break: keep-all;
+  }
+  .vte-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 40px;
+  }
+  .vte-stat {
+    display: flex;
+    min-height: 180px;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 20px;
+    /* 원장 지시 2026-08-07 §6-1 — 세로선 #A5D8F0(숫자 색과 같은 톤) */
+    border-left: 3px solid #A5D8F0;
+  }
+  .vte-stat dt {
+    min-height: 60px;
+    margin: 0;
+    color: #FFFFFF;
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 30px;
+  }
+  .vte-stat dd {
+    margin: 24px 0 0;
+  }
+  .vte-stat dd > [aria-hidden='true'] {
+    display: block;
+    color: #A5D8F0;
+    font-size: 78px;
+    font-weight: 500;
+    line-height: 90px;
+    letter-spacing: -0.04em;
+  }
+  /* 원장 지시 2026-08-07 §6-3 — 위 요소(통계 블록)로부터 30 아래 */
+  .vte-stat-note {
+    margin: 30px 0 0;
+    color: rgb(255 255 255 / 0.8);
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  /* §7 아래 흰 여백 제거(원장 지시 2026-08-07 §7) — 셸(VitiligoShell)이 서브 패널 공통으로
+     주는 하단 여백 pb-16 md:pb-24 를 이 패널에서만 상쇄한다. 이 페이지는 배경이 있는
+     칼럼 밴드가 문서를 마무리하므로 그 아래 흰 띠가 남으면 안 된다(about 패널이 셸에서
+     같은 이유로 이 여백 클래스를 아예 받지 않는 것과 같은 규약). 셸은 나머지 서브 6개가
+     함께 쓰는 파일이라 건드리지 않는다. */
+  .vte {
+    margin-bottom: -64px;
+  }
+  @media (min-width: 768px) {
+    .vte {
+      margin-bottom: -96px;
+    }
+  }
+
+  .vte-reveal-ready [data-vte-reveal] {
+    opacity: 0;
+    transform: translateY(28px);
+    /* 스크롤 등장(reveal)의 정본은 --editorial-reveal-duration(700ms)이다 — 종전 760ms 는
+       근거 없는 60ms 차이였다(원장 지시 2026-09-04 「값 일관성」). 스태거 --vte-delay 와
+       거리 28px 은 이 패널의 구성 값이라 그대로 둔다. */
+    transition:
+      opacity var(--editorial-reveal-duration) var(--ease-editorial),
+      transform var(--editorial-reveal-duration) var(--ease-editorial);
+    transition-delay: var(--vte-delay, 0ms);
+  }
+  .vte-reveal-ready [data-vte-reveal].is-visible {
+    opacity: 1;
+    transform: none;
+  }
+  /* §1 히어로만 등장 연출을 불투명도로 제한한다 — transform 이 걸려 있는 동안에는
+     background-attachment: fixed 가 그 요소 기준으로 되돌아가(고정이 풀린다), 전환이
+     끝나는 순간 배경이 한 번 튄다. 올라오는 모션 대신 페이드만 남긴다. */
+  .vte-reveal-ready .vte-hero[data-vte-reveal] {
+    transform: none;
+  }
+
+  @media (min-width: 768px) and (max-width: 1463px) {
+    .vte-step-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(24px, 4vw, 58px);
+    }
+    .vte-step-arrow {
+      top: clamp(112px, 13.5vw, 168px);
+      right: clamp(-41px, -3.25vw, -24px);
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .vte-intro-head,
+    .vte-duration-head,
+    .vte-prep-grid,
+    .vte-team-grid {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+    .vte-intro-copy {
+      padding-top: 0;
+    }
+    .vte-step-grid {
+      gap: 24px;
+    }
+    .vte-step-arrow {
+      right: -24px;
+    }
+    .vte-notice {
+      width: 100%;
+    }
+    .vte-ba-grid {
+      grid-template-columns: 1fr;
+    }
+    .vte-prep-placeholder {
+      max-height: 560px;
+      /* 1열로 접히면 우측 정렬(2열 기준)이 의미를 잃는다 — 가운데로 */
+      margin-inline: auto;
+    }
+  }
+
+  @media (max-width: 767px) {
+    /* ── 백반증 공통 규격(원장 확정 2026-08-07) — 값은 전부 토큰(src/styles/vitiligo.css)에서.
+       부제 18/24 · 제목 28/40 · 내용 16/26 · 섹션 상하 90 · 내용↔이미지 40 · 박스 radius 16.
+       ⚠️ 여기에 숫자를 다시 적지 말 것 — 백반증 전 페이지가 이 한 곳에서 값을 받는다.
+       ⚠️ PC(위 기본 블록)는 이번 지시 범위 밖이라 현행값 그대로 남겨 뒀다. 이 패널의 PC 값
+          (부제 14/20 · 제목 36/54 · 내용 16/28)은 토큰 PC 기본값(20/28 · 40/60 · 18/32)과
+          다르다 — 그 차이는 의도된 **예외**이므로 토큰 쪽을 바꾸지 말 것. ── */
+    .vte-pad {
+      padding-block: var(--vt-section-pad, 90px);
+    }
+    .vte-kicker {
+      /* 부제 ↔ 제목 16 (종전 10px) */
+      margin-bottom: var(--vt-gap-kicker-title, 16px);
+      font-size: var(--vt-kicker-size, 18px);
+      line-height: var(--vt-kicker-leading, 24px);
+    }
+    .vte-title,
+    .vte-title--large {
+      font-size: var(--vt-title-size, 28px);
+      line-height: var(--vt-title-leading, 40px);
+    }
+    .vte-body {
+      font-size: var(--vt-body-size, 16px);
+      line-height: var(--vt-body-leading, 26px);
+    }
+    .vte-hero {
+      aspect-ratio: 350 / 150;
+      margin-top: var(--vt-gap-body-media, 40px);
+      border-radius: var(--vt-radius, 16px);
+    }
+    /* 제목 ↔ 내용 — §2 헤더는 가운데 정렬이라 20 (좌측 정렬 30 과 다른 값이다) */
+    .vte-centered .vte-lead {
+      margin-top: var(--vt-gap-title-body-center, 20px);
+    }
+    /* 제목 ↔ 내용 — §1 인트로는 좌측 정렬이라 30. ≤1023 에서 1열로 접히며 컬럼 gap 이
+       그대로 제목↔내용 간격이 된다(종전 48px). 같은 1023 규칙을 공유하는
+       .vte-duration-head/.vte-prep-grid/.vte-team-grid 는 '제목↔내용'이 아니라 손대지 않는다. */
+    .vte-intro-head {
+      gap: var(--vt-gap-title-body, 30px);
+    }
+    .vte-lead br,
+    .vte-nbuvb br {
+      display: none;
+    }
+    .vte-step-grid {
+      grid-template-columns: 1fr;
+      gap: 64px;
+      margin-top: 48px;
+    }
+    .vte-step-grid li {
+      width: 100%;
+    }
+    .vte-step-arrow {
+      top: auto;
+      right: 50%;
+      bottom: -44px;
+      transform: rotate(270deg);
+      translate: 50% 0;
+    }
+    .vte-nbuvb {
+      margin-top: 24px;
+    }
+    .vte-nbuvb h3 {
+      font-size: 21px;
+      line-height: 28px;
+    }
+    .vte-nbuvb p {
+      font-size: var(--vt-body-size, 16px);
+      line-height: var(--vt-body-leading, 26px);
+    }
+    /* 모바일은 호버가 없다 — 종전 그대로 가로 스냅 스크롤 + 탭 확장(ExpandCardRow 모바일 모드).
+       치수만 PC 확정 비율(264:360)에 맞춰 220×300 으로 맞추고, 확장 폭은 ExpandCardRow 의
+       --expand-w(min(320px, 86vw)) 와 같은 값을 쓴다(220 × 380/264 ≈ 317 ≒ 320) */
+    .vte-device-row {
+      --vte-card-w: 220px;
+      --vte-card-h: 300px;
+      --vte-card-open-w: min(320px, 86vw);
+      margin-inline: 0;
+    }
+    .vte-device-row :global(.ecr-row.ecr-fill) {
+      gap: 14px;
+      min-height: 400px;
+      /* 좌우 여백은 '확장 카드를 화면 가운데 세울 수 있는 최소치'까지 벌린다.
+         이 행은 scroll-snap-align:center + 탭 시 중앙 스크롤인데, 여백이 그보다 좁으면
+         첫/끝 카드는 콘텐츠가 거기서 끝나 버려 물리적으로 가운데에 못 온다(스크롤이 잘린다).
+         종전 20px 고정에서는 그 오차가 화면이 넓을수록 커졌다 — 실측 375px 에서 7.5px,
+         430px 에서 35px. max() 라 좁은 화면에서는 종전 디자인값 20px 그대로다.
+         (같은 이유로 §5 얼굴 백반증 행도 padding-inline 을 예약해 두었다 — 같은 어법) */
+      padding: 0 max(20px, calc((100vw - var(--vte-card-open-w)) / 2)) 8px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      /* 가로 스크롤 리스트의 대전제 — 넘치는 행을 center 로 정렬하면 앞선 칸이 스크롤
+         원점 왼쪽(음수 offset)으로 밀려 도달 불가가 된다(위 PC 블록 게이트 주석 참조).
+         ExpandCardRow 모바일 기본값과 같은 값이지만, 이 파일의 다른 규칙이 특이도로
+         이기는 구조라 여기서 명시해 둔다. */
+      justify-content: flex-start;
+    }
+    .vte-device-row :global(.ecr-row.ecr-fill .ecr-cell) {
+      flex: 0 0 var(--vte-card-w);
+      scroll-snap-align: center;
+    }
+    /* 탭 확장 — 위 접힘 규칙이 ExpandCardRow 의 모바일 is-active 보다 특이도가 높아
+       여기서 같은 계열로 한 번 더 선언해야 확장이 산다(폭 값은 동일) */
+    .vte-device-row :global(.ecr-row.ecr-fill .ecr-cell.is-active) {
+      flex: 0 0 var(--vte-card-open-w);
+    }
+    .vte-device-row :global(.ecr-row .ecr-card),
+    .vte-device-row :global(.ecr-row.ecr-fill .ecr-card) {
+      height: auto;
+      min-height: var(--vte-card-h);
+    }
+    .vte-device-row :global(.ecr-cell.is-active .ecr-text) {
+      min-height: 330px;
+    }
+    .vte-device-row :global(.ecr-text) {
+      padding: 18px;
+      --e-ti-size: 19px;
+      --e-ti-lh: 24px;
+      --e-body-size: 14px;
+      --e-body-lh: 22px;
+    }
+    .vte-duration-head {
+      gap: 40px;
+    }
+    .vte-duration-copy {
+      margin-top: 24px;
+    }
+    .vte-notice {
+      min-height: 0;
+      padding: 24px;
+    }
+    .vte-notice h3 {
+      font-size: 20px;
+      line-height: 28px;
+    }
+    .vte-notice p {
+      font-size: var(--vt-body-size, 16px);
+      line-height: var(--vt-body-leading, 26px);
+    }
+    .vte-ba-grid {
+      margin-top: 40px;
+    }
+    .vte-ba-set {
+      aspect-ratio: 350 / 122;
+      border-radius: 10px;
+    }
+    .vte-ba-arrow {
+      width: 34px;
+      height: 34px;
+    }
+    .vte-prep-subtitle {
+      margin-top: 32px;
+      font-size: 21px;
+    }
+    .vte-accordion {
+      margin-top: 32px;
+    }
+    .vte-accordion button {
+      grid-template-columns: 38px minmax(0, 1fr) 24px;
+      min-height: 64px;
+      padding-right: 18px;
+      font-size: 16px;
+      line-height: 24px;
+    }
+    .vte-acc-num {
+      width: 38px;
+      height: 38px;
+    }
+    .vte-prep-placeholder {
+      aspect-ratio: 350 / 280;
+    }
+    .vte-team h2 {
+      font-size: var(--vt-title-size, 28px);
+      line-height: var(--vt-title-leading, 40px);
+    }
+    .vte-team header p {
+      margin-top: 24px;
+      font-size: var(--vt-body-size, 16px);
+      line-height: var(--vt-body-leading, 26px);
+    }
+    .vte-stats {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    .vte-stat {
+      min-height: 142px;
+    }
+    .vte-stat dt {
+      min-height: auto;
+      font-size: 17px;
+      line-height: 27px;
+    }
+    .vte-stat dd {
+      margin-top: 16px;
+    }
+    .vte-stat dd > [aria-hidden='true'] {
+      font-size: 52px;
+      line-height: 62px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vte-device-row :global(.ecr-card),
+    .vte-acc-plus::before,
+    .vte-acc-plus::after,
+    .vte-acc-panel,
+    .vte-reveal-ready [data-vte-reveal] {
+      transition: none;
+    }
+    .vte-reveal-ready [data-vte-reveal] {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* 2026-09-29 Figma excimer revision. Scoped here to preserve sibling pages. */
+  .vte { --vte-ink: #292a2b; }
+  .vte-kicker { margin-bottom: 20px; font-size: 20px; line-height: 28px; }
+  .vte-title { font-size: 40px; line-height: 60px; letter-spacing: normal; }
+  .vte-body { font-size: 20px; line-height: 36px; }
+  .vte-intro-copy { padding-top: 48px; }
+  .vte-intro .vt-left-copy { max-width: 700px; }
+  .vte-hero { aspect-ratio: 1400 / 400; margin-top: 90px; }
+  .vte-mechanism { background: #f2f8fc; }
+  .vte-step-grid { margin-top: 90px; }
+  .vte-step-grid figure { border: 1px solid #c3def1; }
+  .vte-step-label { margin: 30px 0 0; font-size: 18px; line-height: 20px; letter-spacing: 1.8px; color: #6899c0; }
+  .vte-step-grid h3 { margin-top: 16px; font-size: 24px; line-height: 28px; }
+  .vte-step-grid li > p:last-of-type { max-width: 386px; margin-top: 16px; color: #292a2b; font-size: 18px; line-height: 30px; }
+  .vte-step-arrow { top: calc((100vw - 180px) / 3 * 300 / 428 / 2 - 12px); }
+  .vte-devices { background: #f9f6f1; }
+  .vte-nbuvb h3 { line-height: 30px; }
+  .vte-nbuvb p { margin-top: 12px; font-size: 20px; line-height: 36px; }
+  .vte-device-row { margin-top: 90px; }
+  .vte-duration { background: linear-gradient(180deg, #fff, #f0f5f9 55%, #c1d9e8); }
+  .vte-duration-head { align-items: start; }
+  .vte-notice { margin-top: 198px; border-radius: 20px; background: #fff; backdrop-filter: none; }
+  .vte-notice h3 { color: #292a2b; font-size: 22px; }
+  .vte-notice p { font-size: 18px; line-height: 32px; }
+  .vte-ba-grid { grid-template-columns: none; grid-template-rows: repeat(2, auto); grid-auto-flow: column; grid-auto-columns: calc((100% - 20px) / 2); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-top: 40px; }
+  .vte-ba-set { border-radius: 20px; scroll-snap-align: start; }
+  .vte-ba-pager { display: flex; justify-content: center; margin-top: 24px; color: #6899c0; }
+  .vte-prep-grid { align-items: start; grid-template-columns: minmax(0, 640px) minmax(0, 690px); gap: 70px; }
+  .vte-prep-subtitle { margin-top: 30px; font-size: 20px; line-height: 30px; }
+  .vte-prep-copy { margin-top: 18px; }
+  .vte-accordion { margin-top: 168px; gap: 16px; }
+  .vte-accordion button { grid-template-columns: 36px minmax(0, 1fr) 16px; gap: 12px; padding: 18px 40px 18px 23px; font-size: 22px; font-weight: 500; line-height: 30px; }
+  .vte-acc-num { width: 36px; height: 36px; font-size: 17px; }
+  .vte-acc-plus { width: 16px; height: 16px; }
+  .vte-acc-panel p { font-size: 18px; line-height: 32px; border-radius: 22px; }
+  .vte-team-media { background: #000; }
+  .vte-team-media img { inset: -10px; width: calc(100% + 20px); height: calc(100% + 20px); filter: blur(5px); transform: none; }
+  .vte-team-media div { background: rgb(0 0 0 / .7); }
+  .vte-team-grid { padding-block: 200px; align-items: start; }
+  .vte-team h2 { font-size: 40px; line-height: 60px; letter-spacing: normal; }
+  .vte-team header p { color: rgb(255 255 255 / .7); font-size: 20px; line-height: 36px; }
+  .vte-team header .vte-kicker { margin: 0 0 20px; color: #a5d8f0; line-height: 28px; }
+  .vte-stat { border-left-width: 2px; }
+  .vte-stat dd > [aria-hidden='true'] { font-weight: 400; letter-spacing: normal; }
+  .vte-stat-note { color: rgb(255 255 255 / .5); font-size: 16px; line-height: 28px; }
+  @media (min-width: 1464px) { .vte-step-arrow { top: 138px; } }
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .vte-notice, .vte-accordion { margin-top: 0; }
+    .vte-prep-grid { grid-template-columns: 1fr; gap: 40px; }
+    .vte-intro-copy { padding-top: 0; }
+  }
+  @media (max-width: 767px) {
+    .vte-pad { padding-block: 80px; }
+    .vte-intro .vte-pad { padding-top: 90px; }
+    .vte-kicker { font-size: 16px; line-height: 24px; margin-bottom: 16px; }
+    .vte-title, .vte-title--large { font-size: 28px; line-height: 40px; }
+    .vte-body { font-size: 16px; line-height: 26px; }
+    .vte-mobile-break { display: block; }
+    .vte-intro-head { gap: 30px; }
+    .vte-intro-copy { padding-top: 0; }
+    .vte-hero { aspect-ratio: auto; height: 200px; margin-top: 40px; border-radius: 16px; background-size: auto 268px; background-position: 20% bottom; }
+    .vte-centered .vte-kicker { margin-bottom: 20px; }
+    .vte-lead { margin-top: 20px; }
+    .vte-step-grid { margin-top: 40px; gap: 40px; }
+    .vte-step-grid figure { aspect-ratio: 350 / 230; border-radius: 12.857px; }
+    .vte-step-label { margin-top: 16px; font-size: 14px; line-height: 18px; letter-spacing: 1.4px; }
+    .vte-step-grid h3 { margin-top: 8px; font-size: 18px; line-height: 24px; }
+    .vte-step-grid li > p:last-of-type { margin-top: 8px; font-size: 16px; line-height: 26px; }
+    .vte-step-arrow { display: none; }
+    .vte-nbuvb { margin-top: 20px; }
+    .vte-nbuvb h3 { font-size: 18px; line-height: 22px; }
+    .vte-nbuvb p { font-size: 16px; line-height: 26px; margin-top: 8px; }
+    .vte-device-row { margin-top: 40px; --vte-card-w: 280px; --vte-card-h: 360px; --vte-card-open-w: min(320px, calc(100vw - 40px)); }
+    .vte-device-row :global(.ecr-row.ecr-fill) { gap: 25px; }
+    .vte-device-row :global(.ecr-row.ecr-fill.is-marquee) { overflow: hidden; padding: 0 0 8px; }
+    .vte-device-row :global(.ecr-row [data-ecr-track]) { gap: 25px; }
+    .vte-device-row :global(.ecr-name) { margin-top: 28px; font-size: 18px; line-height: 20px; color: #292a2b; }
+    .vte-device-row :global(.ecr-row.ecr-fill .ecr-card) { border-radius: 16px; }
+    .vte-duration-head { gap: 40px; }
+    .vte-duration-copy { margin-top: 30px; }
+    .vte-notice { margin-top: 0; padding: 26px 20px; border-radius: 12px; }
+    .vte-notice-title { flex-direction: column; align-items: start; gap: 12px; }
+    .vte-notice h3 { font-size: 18px; line-height: 26px; }
+    .vte-notice p { margin-top: 10px; font-size: 15px; line-height: 26px; }
+    .vte-ba-grid { grid-template-rows: auto; grid-auto-columns: 100%; margin-top: 20px; }
+    .vte-ba-set { border-radius: 10px; }
+    .vte-prep-grid { grid-template-columns: 1fr; gap: 40px; }
+    .vte-accordion { margin-top: 0; }
+    .vte-accordion button { min-height: 52px; grid-template-columns: 26px minmax(0, 1fr) 12px; padding: 13px 20px 13px 17px; gap: 9px; font-size: 16px; line-height: 22px; }
+    .vte-acc-num { width: 26px; height: 26px; font-size: 12.464px; }
+    .vte-acc-panel p { font-size: 13px; line-height: 22px; border-radius: 16px; padding: 15px; }
+    .vte-team h2 { font-size: 28px; line-height: 40px; }
+    .vte-team-grid { gap: 30px; }
+    .vte-team header p { margin-top: 30px; font-size: 16px; line-height: 26px; }
+    .vte-team header .vte-kicker { font-size: 16px; line-height: 24px; }
+    .vte-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+    .vte-stat { min-height: 116px; padding-left: 16px; justify-content: start; }
+    .vte-stat dt { font-size: 16px; line-height: 24px; }
+    .vte-stat dd { margin-top: 12px; }
+    .vte-stat dd > [aria-hidden='true'] { font-size: clamp(36px, 12.31vw, 48px); line-height: 60px; }
+    .vte-stat-note { margin-top: 20px; font-size: 14px; line-height: 26px; }
+  }
+  .vte-response { background: #141e28; color: #fff; }
+  .vte-response-inner { display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); gap: clamp(4rem, 9vw, 9rem); }
+  .vte-response header { align-self: start; }
+  .vte-response .vte-title.vte-added-title { color: #a0c5dd; }
+  .vte-response header .vte-body { margin-top: 30px; max-width: 31rem; color: rgba(255,255,255,.72); line-height: 2; }
+  .vte-response-lede { margin-bottom: 28px; color: #a0c5dd; font-size: 18px; font-weight: 600; line-height: 1.75; word-break: keep-all; }
+  .vte-response-copy ol { border-top: 1px solid rgba(255,255,255,.3); }
+  .vte-response-copy li { display: grid; grid-template-columns: 54px minmax(0,1fr); gap: 22px; padding-block: 27px; border-bottom: 1px solid rgba(255,255,255,.3); }
+  .vte-response-copy li > span { padding-top: 4px; color: #8cb4d4; font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+  .vte-response-copy h3 { color: #fff; font-size: 20px; font-weight: 600; line-height: 1.5; }
+  .vte-response-copy li p { margin-top: 8px; color: rgba(255,255,255,.68); font-size: 15px; line-height: 1.8; word-break: keep-all; }
+  @media (max-width: 767px) {
+    .vte-response-inner { grid-template-columns: 1fr; gap: 48px; }
+    .vte-response-lede { font-size: 17px; }
+    .vte-response-copy li { grid-template-columns: 38px minmax(0,1fr); gap: 14px; padding-block: 24px; }
+    .vte-response-copy h3 { font-size: 18px; }
+  }
+</style>
+
+<script>
+  import { syncDisclosureState } from './about/disclosureState.mjs';
+
+  document.querySelectorAll<HTMLElement>('.vte').forEach((root) => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const accordion = root.querySelector<HTMLElement>('[data-vte-accordion]');
+    if (accordion) {
+      const items = Array.from(accordion.querySelectorAll<HTMLLIElement>(':scope > li'));
+      const setOpen = (item: HTMLLIElement, open: boolean) => {
+        item.classList.toggle('is-open', open);
+        const trigger = item.querySelector<HTMLButtonElement>('[data-vte-acc-trigger]');
+        const panel = item.querySelector<HTMLElement>('[data-vte-acc-panel]');
+        if (trigger && panel) syncDisclosureState(trigger, panel, open);
+      };
+
+      items.forEach((item) => setOpen(item, false));
+      void accordion.offsetHeight;
+      accordion.classList.add('is-ready');
+      items.forEach((item) => {
+        item.querySelector<HTMLButtonElement>('[data-vte-acc-trigger]')?.addEventListener('click', () => {
+          const willOpen = !item.classList.contains('is-open');
+          items.forEach((other) => setOpen(other, other === item && willOpen));
+        });
+      });
+    }
+
+    if (!reducedMotion.matches && 'IntersectionObserver' in window) {
+      root.classList.add('vte-reveal-ready');
+      const revealObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-visible');
+            revealObserver.unobserve(entry.target);
+          });
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -6% 0px' },
+      );
+      root.querySelectorAll<HTMLElement>('[data-vte-reveal]').forEach((element) => revealObserver.observe(element));
+
+      const counters = Array.from(root.querySelectorAll<HTMLElement>('[data-vte-count]'));
+      const counterObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            const element = entry.target as HTMLElement;
+            const target = Number(element.dataset.target ?? 0);
+            const suffix = element.dataset.suffix ?? '';
+            const duration = 1300;
+            const startedAt = performance.now();
+            const render = (now: number) => {
+              const progress = Math.min(1, (now - startedAt) / duration);
+              const eased = 1 - Math.pow(1 - progress, 3);
+              element.textContent = `${(target * eased).toFixed(1)}${suffix}`;
+              if (progress < 1) requestAnimationFrame(render);
+            };
+            element.textContent = `0.0${suffix}`;
+            requestAnimationFrame(render);
+            counterObserver.unobserve(element);
+          });
+        },
+        { threshold: 0.5 },
+      );
+      counters.forEach((counter) => counterObserver.observe(counter));
+    }
+  });
+</script>

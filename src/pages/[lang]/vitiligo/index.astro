@@ -1,0 +1,1372 @@
+---
+import { localeOf, localeUrl, localePaths } from '../../../lib/i18n';
+/* 이 페이지의 언어. 메뉴 데이터가 프론트매터 앞쪽에 있어 **맨 위**에 둔다.
+   'ko' 를 박지 않는다 — 2단계에서 언어가 늘어도 이 파일은 손대지 않는다. 정본: src/lib/i18n.ts */
+const lang = localeOf(Astro.currentLocale);
+/* 언어 경로 — 고정 페이지는 언어 목록만 펼친다(콘텐츠와 곱하지 않는다). 정본: src/lib/i18n.ts */
+export const getStaticPaths = () => localePaths();
+/**
+ * /vitiligo/ — 백반증 랜딩 전면 리뉴얼 (원장 지시 2026-07-22 최종).
+ * 셸(VitiligoShell)에서 분리한 독립 페이지. 서브 7개 URL은 기존 셸 유지, 이 랜딩만 새 구성.
+ * 섹션: 1 Hero(15 변신 시퀀스) → 2 Agitation(검정) → 3 카운트업(검정) → 4 카드 슬라이더(흰)
+ *      → 4.5 의사 소개(흰) → 5 후기(흰) → 7 논문(흰).
+ * 공통(§A): 전 카피 고딕 · 섹션 구분선 없음 · 검정(2·3)/흰(4~7) 배경 체계 ·
+ *          스크롤 연출은 모바일·reduced-motion 정적 폴백.
+ * - 상단 고정 카테고리(VitiligoStickyNav)는 히어로에선 숨김 → 검정 밴드 진입 시 등장,
+ *   검정/흰 구간 테마 자동 전환. 항목은 기존 서브 라우트로 이동.
+ * - #vitiligo-hero id는 [히어로+검정 밴드] 래퍼에 — Header 오버레이 임계가 "어두운 구간 끝"
+ *   에서 반전(§교훈: 오버레이 페이지 새 히어로는 반드시 computeThreshold 셀렉터에 등록).
+ * - 지표·의사·논문 데이터는 기존 소스 그대로(vitiligo_landing.json·repo).
+ * - 후기(§H)는 healhouseskin.com/vitiligo/main.php "백반증센터 고객 리뷰" 22건 이식
+ *   (2026-07-22 추출). 프로필 사진은 원본 22장 webp 반입(2026-07-29 13차 3-c,
+ *   /images/vitiligo/reviews/ — 원본 순서 = REVIEWS 순서 1:1 확인).
+ *   ⚠️ 치료경험담은 의료광고 심의 대상 — 실데이터 운영 시 출처·환자 동의 관리 필요.
+ * - PC 개편(원장 지시 2026-07-30 8차, 참고 전달용/00 예시이미지/백반증-pc.png):
+ *   수치 밴드 아래 ④~⑦ 전 구간을 md+ 전용 새 구성(Specialty·의사 다크 밴드·ReviewSlider
+ *   재사용 후기·인사이트 칼럼+N개 더보기·연구 소개)으로 교체 — 기존 섹션은 md:hidden으로
+ *   모바일 전용 유지(모바일 1px 불변). 데이터는 전부 백반증 소스만(REVIEWS·
+ *   researchPapers) — 홈 데이터·홈 문구 반입 금지.
+ * - ④ Specialty 통합(원장 지시 2026-08-03): 위 두 벌(PC 핀 시퀀스 / 모바일 옛 블록)을
+ *   **반응형 한 벌**로 합치고 핀+갈아끼우기 모션을 폐기했다("답답하다" — 스크롤을 잡지 않는다).
+ * - ⑦ 연구 소개 통합(원장 지시 2026-08-07): 모바일이 PC 와 같은 개수(5건)·문구
+ *   ('연구 소개 더 보기 >')·디자인('백반증이란' 연구 소개)으로 맞춰지며 두 벌을 쓸 이유가
+ *   사라져 **반응형 한 벌**이 됐다(옛 모바일 FeedList 10건+더보기 블록 삭제).
+ * - ⑤ 후기·⑥ 칼럼 통합(검수 2026-08-11 — 크롤러 이중 렌더 제거, 원장 확정): 마지막까지
+ *   두 벌이던 ⑤(ReviewSlider / .vt-slider 커스텀)·⑥(전용 그리드+더보기 / FeedList)을
+ *   **반응형 한 벌**로 합쳤다 — ⑤ = ReviewSlider(반응형 내장), ⑥ = FeedList.
+ * - 2026-09-15: 메인의 칼럼·진료 안내는 DOM과 전용 데이터 조회·구조화 데이터에서 제거했다.
+ *   하위 페이지 탐색은 기존 고정 카테고리 바가 맡고, 연구 소개는 유지한다.
+ */
+import { readdirSync } from 'node:fs';
+import path from 'node:path';
+import Base from '../../../layouts/Base.astro';
+import SEOHead from '../../../components/SEOHead.astro';
+// 히어로 — 스크롤 시퀀스(VitiligoHeroSequence) → 캐러셀 원복(원장 지시 2026-08-02).
+// 시퀀스 파일은 2026-09-03 청소로 삭제했다(미배선 사본 보존 금지 — 되돌리기는 git 이력).
+import VitiligoHero from '../../../components/vitiligo/VitiligoHero.astro';
+import VitiligoStickyNav from '../../../components/vitiligo/VitiligoStickyNav.astro';
+import ReviewSlider from '../../../components/home/ReviewSlider.astro';
+import ReviewDisclaimer from '../../../components/ui/ReviewDisclaimer.astro';
+import {
+  getDoctorIdentityBySlug,
+  getResearchPapers,
+  getVitiligoLanding,
+} from '../../../lib/repo';
+import { breadcrumbLd, vitiligoPageLd, type Crumb } from '../../../lib/jsonld';
+import { VITILIGO_REVIEWER_SLUG, VITILIGO_REVIEWED_AT } from '../../../lib/vitiligoMeta';
+import { SITE } from '../../../lib/site';
+import { vitiligoSectionLink } from '../../../lib/vitiligo-section-links';
+/* 백반증 카테고리 공통 규격 토큰(--vt-*) — 이 랜딩은 셸(VitiligoShell)을 쓰지 않는
+   독립 페이지라 여기서 직접 싣는다. import 방식은 저장소 관용구 그대로(전역 CSS 파일을
+   프런트매터에서 import). 상속 루트는 아래 .vt-scope 래퍼 한 겹. */
+import '../../../styles/vitiligo.css';
+
+const [landing, researchPapers] = await Promise.all([
+  getVitiligoLanding(),
+  getResearchPapers(),
+]);
+// ※ landing.pillars·doctor.lede는 구 랜딩 패널 전용이라 현재 미사용(소비처 없음) —
+//   vitiligo_landing.json에서 이 두 필드를 수정해도 화면에 반영되지 않는다(코드검수 기록).
+/* ④-5 원장 블록 — vitiligo_landing.json 의 doctor 에는 이 페이지 고유 문안(body)·사진만 남는다.
+   이름·학회 이력·프로필 주소는 doctors.json(운영앱 입력 → exporter 산출물)의 배정민 행에서
+   파생한다(아래 `reviewer`, 원장 결정 2026-09-03 §0-AJ "코드에 박아둔거 지워. 입력한게 맞아.").
+   ⚠️ 종전에는 name·role·credentials 사본이 이 JSON 에 박혀 있어 운영앱에서 학회 직함을 고쳐도
+      랜딩은 2026-07-13 값(기획정책이사)을 그대로 냈다 — 다시 넣지 말 것. */
+const { doctor } = landing;
+
+/* §E 확정 지표. 라벨은 줄 배열(2차 §4: 첫 라벨 2줄) — 데이터에서는 label 의 줄바꿈(\n)이
+   그 줄을 나눈다.
+   ⚠️ 2026-08-23 이전에는 이 배열이 하드코딩이었고, 옛 운영앱 백반증 지표 화면(2026-09-03 제거)의 '지표' 입력칸은
+      소비처가 0이었다 — 원장이 운영앱에서 고쳐도 화면은 그대로였고 두 값이 갈라져 있었다
+      (운영앱 102편 / 화면 205편). 지금은 landing.stats 가 정본이다.
+   ⚠️ 논문 수 205 (원장 확정 2026-08-02 "전체 논문수 205편으로 바꾸고").
+   같이 바뀐 것: 205는 **백반증 논문만이 아니라 전체 발표 실적**이라, 라벨에서 '백반증 관련'을
+   뺐다 — 안 빼면 사실과 다른 진술이 된다. 백반증 연구는 '그중 핵심 연구를 소개'로 문장이 감당.
+   ⚠️ 이 숫자를 운영앱에서 바꿔도 **따라오지 않는 곳**이 있다(함께 고쳐야 한다):
+      /images/vitiligo/about/research-205-plus.svg — 숫자가 그림으로 그려져 있어 교체가 필요하다 ·
+      이 파일 연구 섹션 문구 2곳 · VitiligoAboutPanel.astro(문구 2곳·숫자 블록) ·
+      VitiligoResearchPanel.astro(RESEARCH_TOTAL) */
+const STATS = landing.stats.map((s) => ({
+  num: s.num,
+  unit: s.unit,
+  /* ?? '' — 게이트가 켜지기 전까지 이 JSON 은 exporter 검증을 거치지 않는다(손으로 고치는
+     구간이다). label 이 빠져도 빌드가 죽지 않게 한다. */
+  label: (s.label ?? '').split('\n'),
+}));
+
+/* §F Specialty 3블록 (4차: 슬라이더 → 세로 나열, 확정 카피·지정 줄바꿈·굵게).
+   paras: 문단 배열(빈 줄 = 문단 경계), lines: 데스크톱 강제 줄바꿈(모바일 자연 흐름).
+   alt: 블록 사진(specialty-step-0n.webp)의 대체 텍스트.
+   ⚠️ img·pos(구 '차별점' 카드 사진 /images/vitiligo/card-*.jpg 등) 필드는 2026-08-03 PC/모바일
+      통합에서 제거했다 — 모바일 전용 블록이 사라지며 소비처가 0이 됐고(사진은 specialty-step
+      3장으로 단일화), 필드를 남겨 두면 '카드마다 사진이 두 벌'로 읽혀 관리 지점이 갈린다.
+      원본 파일은 public/ 에 그대로 있으니 되돌릴 땐 git 이력에서 필드만 복원하면 된다. */
+const CARDS = [
+  {
+    title: '정확한 진단이 우선입니다.',
+    alt: '진료실에서 백반증 자료를 함께 보며 상담하는 배정민 원장',
+    paras: [
+      {
+        lines: [
+          '"백반증을 좀 더 정확히 진단할 수 없을까?"',
+          "세상에 없던 '백반증 특수촬영 카메라'는 배정민 원장의 이 깊은 고민에서 시작되었습니다.",
+          '특수촬영으로 육안으로는 잘 보이지 않는 미세한 병변까지 찾아냅니다.',
+          '매번 같은 각도와 조명으로 상태를 객관적으로 기록하고,',
+          '축적된 데이터에 비추어 앞으로의 치료 반응을 미리 가늠합니다.',
+        ],
+      },
+      {
+        bold: true,
+        lines: [
+          '이렇게까지 진단에 공을 들이는 이유는 단 하나',
+          '유형이 다르면 치료 계획도 완전히 달라져야 하기 때문입니다.',
+        ],
+      },
+    ],
+  },
+  {
+    title: '환자에 맞는 치료를 설계합니다.',
+    alt: '환자 상태에 맞춰 치료 계획을 설계하는 배정민 원장',
+    paras: [
+      {
+        lines: [
+          '엑시머 레이저, 부위별 광선치료, 이식 수술, 그리고 탈색치료까지.',
+          '이토록 폭넓은 방법을 모두 갖추고 있는 이유는 단 하나입니다.',
+          '선택지가 많아야, 환자 개인에게 꼭 맞는 최적의 조합을 찾아낼 수 있기 때문입니다.',
+        ],
+      },
+      {
+        bold: true,
+        lines: [
+          '백반증은 정해진 하나의 매뉴얼로 치료할 수 없습니다.',
+          '매 진료마다 미세한 변화를 추적하며 다음 치료 방법을 환자와 함께 유연하게 조율합니다.',
+        ],
+      },
+    ],
+  },
+  {
+    title: '백반증 수술로 마침표를 찍습니다.',
+    alt: '백반증 수술을 집도하는 배정민 원장',
+    paras: [
+      {
+        lines: [
+          '충분한 약과 광선치료에도 오랫동안 반응이 없는 안정된 백반증이라면,',
+          '무의미한 레이저 반복 대신 수술을 검토해야 할 때입니다.',
+        ],
+      },
+      {
+        bold: true,
+        lines: [
+          '연간 520건 이상의 집도 경험을 바탕으로,',
+          '정상 색소 세포를 직접 이식하는 고난도 백반증 수술(미세펀치이식술 · 표피세포이식술 등)까지',
+          '원스톱으로 진행합니다.',
+        ],
+      },
+    ],
+  },
+];
+
+const TREATMENT_GUIDE = [
+  {
+    title: '새 반점이 생기거나 번질 때',
+    body: '병이 활동 중인지 먼저 확인하고, 진행을 줄이기 위한 약물치료와 광선치료의 병행 여부를 살핍니다.',
+    href: localeUrl(lang, 'vitiligo/medication/'),
+    link: vitiligoSectionLink('medication').label,
+  },
+  {
+    title: '국소 병변의 색소 회복을 도울 때',
+    body: '병변의 넓이와 위치에 따라 엑시머 레이저 또는 부위별·전신 광선치료를 계획할 수 있습니다.',
+    href: localeUrl(lang, 'vitiligo/excimer/'),
+    link: vitiligoSectionLink('excimer').label,
+  },
+  {
+    title: '오래 안정된 병변이 남아 있을 때',
+    body: '충분한 비수술 치료에도 반응이 적고 일정 기간 안정적이라면 수술 가능성을 평가할 수 있습니다.',
+    href: localeUrl(lang, 'vitiligo/surgery/'),
+    link: vitiligoSectionLink('surgery').label,
+  },
+  {
+    title: '치료 후 좋은 상태를 지킬 때',
+    body: '자외선 보호와 마찰 관리, 같은 조건의 사진 기록을 이어가며 재발 징후를 일찍 확인합니다.',
+    href: localeUrl(lang, 'vitiligo/care/'),
+    link: vitiligoSectionLink('care').label,
+  },
+];
+
+/* §H 후기 22건 — healhouseskin.com "백반증센터 고객 리뷰" 이식(2026-07-22 추출, 원문 그대로) */
+interface Review {
+  name: string;
+  region: string;
+  title: string;
+  body: string;
+}
+const REVIEWS: Review[] = [
+  { name: 'Soph***', region: '수원시 팔달구', title: '대학병원 출신 백반증 전문 선생님 계시고 친절하고 전문적입니다.', body: '레이저 치료 중인데 여기서 많이 좋아져서 같은 치료기라도 어떻게 다루는가에 따라 경과가 다르구나 하고 생각하고 있습니다. 선생님 믿고 꾸준히 주 2회 치료 중인데 백반증도 수술로 개선이 가능하다고 하네요. 저는 아직 레이저 단계입니다만 수술까지 안 가고 나아보려고요. 파이팅! 잘 부탁드립니다.' },
+  { name: 'Hkh0***', region: '평택시', title: '명성대로 친절하시고 꼼꼼하세요.', body: '제 이야기 다 들어주시고 초진은 30분 정도 봐주시더라고요. 사진도 많이 찍고 엑시머, 광선치료, 주사치료까지 시간이 많이 걸렸지만 꼼꼼해서 더 좋았어요. 백반증 미백관리도 받고 있는데 만족합니다.' },
+  { name: 'Seab***', region: '성남시 판교동', title: '백반증 진료 보러 갔는데 소문대로 잘 봐주시네요.', body: '간호사분들도 친절하고 선생님 항상 감사드립니다.' },
+  { name: 'al***', region: '용인시 수지구', title: '힐하우스에서 수술받고 지금 엄청 좋아졌어요.', body: '저는 19살때 손톱만한 백반증이 생겼었는데 얼굴과 목에 번져서 대인기피증에 많이 울기도 하고 스트레스도 엄청 받았어요. 치료 몇 번 받다 차도가 없어 포기하고 있었는데 힐하우스에서 수술받고 지금 엄청 좋아졌어요. 일주일에 두 번 레이저 치료받고 있어요. 직원분들도 넘 친절하시고 선생님을 만난 게 행운이에요.' },
+  { name: '김**', region: '성남시 분당구', title: '다른데 다니다 가니 자세히 설명해 주셔서 속이 다 시원하더라고요~', body: '첫 진료 때 특수카메라 찍어 두셨고, 그 후로 몇 개월 한달 1회씩 가고 있어요. 어떤 종류의 백반증인지 통계적으로 얼마나 어떤 식으로 번지는 종류인지 알려주시더라고요~ 다행히 심하게 막 번지지는 않는 종류라고, 다른데 다니다 가니 자세히 설명해 주셔서 속이 다 시원하더라고요~' },
+  { name: '고**', region: '전남 무안군', title: '힐하우스 간호사, 선생님들 다 친절하고 좋다.', body: '배정민 교수님을 처음 보았을 때 백반증에 대해 말씀도 쉽게 잘해 주시고 너무 자상하셔서 큰 능력자라고 생각했다. 얼굴은 다 좋아졌고 목이 조금 남았는데 항상 친절하게 맞이해 주신다. 힐하우스 간호사, 선생님들 다 친절하고 좋다.' },
+  { name: '라이***', region: '충남 천안시', title: '제가 본 카메라만 특수카메라 포함 4대였어요.', body: '힐하우스는 환자에게 관심이 많으시고 사진도 원장님이 직접 촬영하세요. 제가 본 카메라만 특수카메라 포함 4대였어요. 사진 찍은 것 직접 보여주시고 상태도 꼼꼼하게 확인해주세요. 저는 빈센트 병원 때부터 다녔는데 한결 같으세요.' },
+  { name: '제주***', region: '제주 서귀포시', title: '백반증 무조건 전문의에게 가세요.', body: '아이가 백반증이라 제주에서 갔어요. 정확하시며 앞으로 우리가 해야 할 길을 알려주시는 데 신뢰가 가더라고요. 몸도 몸이지만 마음도 치료받고 온 느낌이었습니다. 바쁜데도 대충이란 없다는 느낌이었고요. 간호사 분들도 다른 곳보다 많이 친절하세요.' },
+  { name: '김수***', region: '경기 평택시', title: '다른 병원에서는 애매하게 이야기해 주셨는데 명확한 답을 주셨어요.', body: '진짜 특수카메라로 보시고 저는 백반증이 아닌 흰 점이라고 확실히 이야기해 주시네요. 백반증 사례들과 그냥 흰 점을 비교해서 설명해 주셔서 믿음이 갔습니다.' },
+  { name: '쪼꼬***', region: '경기 안양시', title: '왕복 2시간 걸려도 그냥 수원으로 다니고 있어요.', body: '힐하우스는 초진하고 재진환자 예약 따로 잡아주세요. 궁금하신 거 물어보면 친절하게 대답 잘해주세요~ 저는 집 바로 앞에 엑시머 있는 피부과 있는데 왕복 2시간 걸려도 그냥 수원으로 다니고 있어요.' },
+  { name: '아지***', region: '경기 광주시', title: '만족하고 환자가 많은 이유를 알겠더라고요.', body: '저도 경기 광주에서 일주일에 두 번 진료보고 있어요. 옮긴 지 한달 됐는데 무엇보다 친절하시고, 어제는 선생님께서 색소가 조금씩 채워지고 있다 하시고 치료 잘 받으면 좋아진다고 긍정의 말씀해주셔서 멀지만 다니고 있습니다.' },
+  { name: '성**', region: '수원시 영통구', title: '높은 전문성과 연구 열정은 물론 환자의 불안한 마음까지 헤아리는 따뜻함', body: '백반증의 진단 및 치료에 대한 높은 전문성과 연구 열정은 물론 환자의 불안한 마음까지 헤아리는 따뜻함을 갖고 계신 원장님 덕분에 편안히 치료받고 있습니다. 늘 감사합니다!' },
+  { name: 'Komou***', region: '수원시 광교', title: '다들 정말 친절하시고 환자 마음을 잘 이해해주시고 불안감도 잘 해소해 주셔서 좋았습니다.', body: '다닌 지 두 달 넘어가는데 선생님들 참 친절하시고 환자가 불안할 것들을 미리미리 설명 잘 해주셔서 그게 너무 좋았어요.' },
+  { name: '이**', region: '수원시 장안구', title: '백반증 수술을 받고 나서 짧은 소매 옷을 입을 수 있어서 행복합니다.', body: '어린 시절부터 백반증 치료를 받았지만 호전되지 않아 치료와 포기를 반복하던 중 배정민 선생님께 치료를 받았습니다. 더운 여름에도 늘 긴 소매 옷을 입고 지내야 했는데, 수술 후 짧은 소매 옷을 입을 수 있어서 행복합니다.' },
+  { name: '김**', region: '성남시 분당구', title: '확실히 백반증은 전문병원에 가는 게 좋은 것 같아요.', body: '백반증 치료에는 엑시머나 수술밖에 없다고 생각해서 그냥 집 근처 피부과에서 엑시머만 받아왔어요. 제가 질문 따로 하지 않아도 설명 자세히 해주시고 앞으로 치료 계획을 말씀해 주시는데 너무 감사했어요.' },
+  { name: '김**', region: '용인시 수지구', title: '꾸준히 치료받으면서 이제 백반증이 거의 안 보여요.', body: '얼굴에 백반증이 생긴 후 많은 사람들이 그게 무엇이냐고 물어봐서 스트레스를 받았어요. 원장님께서 마음 편하게 해주시고 긍정적으로 말씀해 주셔서 감사했어요. 꾸준히 치료받으면서 이제 백반증이 거의 안 보여요.' },
+  { name: '두아***', region: '서울시 중구', title: '치료를 포기하기 전에 원장님을 한번 만나보세요.', body: '느닷없이 백반증이 찾아왔습니다. 가까운 곳에서 치료를 받는데도 온몸으로 점점 퍼져갔습니다. 그렇게 좌절하던 중 힐하우스를 만났습니다. 서울에서 다니는 게 쉽지 않았지만 벌써 아주 많이 호전되어서 만족합니다.' },
+  { name: '위혜***', region: '수원시 팔달구', title: '여러 원장님들을 봐왔는데 직접 카메라를 들고 찍으신 분은 처음이셨습니다.', body: '환자의 입장에서 먼저 생각해 주시고 격려도 해주시고, 어떤 제품이 좋고 어떤 게 좋지 않은지 이야기해 주셨어요.' },
+  { name: '꿈***', region: '경기 김포시', title: "'돈보다 진짜 환자를 생각하는 분이구나' 하면서 갈 때마다 느껴요.", body: '백반증 연구도 많이 하시고 환자 입장에서 항시 생각해 주시는 게 진정성이 느껴졌어요.' },
+  { name: '스리***', region: '서울시 송파구', title: '우드등과 특수카메라로 백반증을 잘 잡아주세요.', body: '전 의심 부위 5군데 보여드렸는데 4군데는 다 다른 증상이었고, 생각 못한 백반증 부위를 찾아 주셨어요.' },
+  { name: 'Cait***', region: '대전시 유성구', title: '저도 병원 두 번이나 옮기고 마지막으로 정착한 병원이에요.', body: '3개월 정도 치료받았는데 중간중간 경과 확인차 사진 찍어 주시고 설명도 해주세요. 진료받고 그냥 신경 안 쓰고 약 잘 먹고 병원 꾸준히 가고 연고 잘 발랐더니 많이 좋아졌어요.' },
+  { name: 'Haan***', region: '서울시 서초구', title: '미세펀치이식술 받았는데 마취 주사 맞을 때만 아프고 통증 없이 수술했어요.', body: '작년에 힐하우스에서 미세펀치이식술 받았는데 마취 풀리고도 아프지 않았고요. 그리고 엑시머 하고 지금은 다 나았어요.' },
+];
+
+/* 통계 사진 — 기존 폴더 스캔 그대로(장수 유동, 파일 목록 하드코딩 금지) */
+const listJpg = (segments: string[], prefix = ''): string[] => {
+  try {
+    return readdirSync(path.resolve(process.cwd(), ...segments))
+      .filter((f) => f.startsWith(prefix) && f.endsWith('.jpg'))
+      .sort();
+  } catch {
+    return [];
+  }
+};
+const statsImages = listJpg(['public', 'images', 'vitiligo'], 'stats-').map(
+  (f) => `/images/vitiligo/${f}`,
+);
+const specialistImages = [1, 2, 3, 4].map(
+  (index) => `/images/vitiligo/landing/vitiligo-specialist-${String(index).padStart(2, '0')}.webp`,
+);
+
+/* 수치 밴드 배경 crossfade 키프레임 — 기존 LandingPanel 문법 그대로 이식 */
+const XF_HOLD = 5;
+const XF_FADE = 1;
+const xfCycle = statsImages.length * XF_HOLD;
+const pct = (v: number) => Math.round(v * 100) / 100;
+const statsXfCss =
+  statsImages.length > 1
+    ? [
+        `.hh-vstat-xf{opacity:0;animation:${xfCycle}s ease-in-out infinite;}`,
+        ...statsImages.slice(1).map((_, idx) => {
+          const i = idx + 1;
+          const start = pct((i * 100) / statsImages.length);
+          const fade = pct((XF_FADE / xfCycle) * 100);
+          return (
+            `.hh-vstat-xf-${i}{animation-name:hh-vstat-xf-${i};}` +
+            `@keyframes hh-vstat-xf-${i}{0%,${start}%{opacity:0;}${pct(start + fade)}%,${pct(100 - fade)}%{opacity:1;}100%{opacity:0;}}`
+          );
+        }),
+        `@media (prefers-reduced-motion: reduce){.hh-vstat-xf{animation:none;}}`,
+      ].join('')
+    : '';
+
+/* 후기와 연구는 백반증 소스만 사용한다. 홈 데이터는 이 페이지에 반입하지 않는다. */
+
+/* ⑤(PC) 후기 — ReviewSlider(variant="vitiligo") 아이템 매핑. 소스 = 위 REVIEWS 그대로 */
+const vtReviewItems = REVIEWS.map((r, i) => ({
+  text: r.title,
+  body: r.body,
+  author: `${r.name} (${r.region})`,
+  meta: '백반증 치료 고객',
+  image: `/images/vitiligo/reviews/review_profile_img${String(i + 1).padStart(2, '0')}.webp`,
+}));
+
+/* ⑦ 연구 목록 — 최신 5건 노출 + '연구 소개 더 보기' 링크.
+   PC 는 참고 시안(백반증-pc.png) 기준 5건이었고, 모바일도 5건으로 통일됐다
+   (원장 지시 2026-08-07 "모바일은 최신 연구 5개만 · 아래로 펼치는 더보기 없앨 것"). */
+const researchTop = researchPapers.slice(0, 5);
+
+const crumbs: Crumb[] = [
+  { name: '홈', path: '/' },
+  { name: '백반증', path: localeUrl(lang, 'vitiligo/') },
+];
+
+/* 감수자 — 백반증 일반 페이지의 구조화 데이터와 같은 사람·같은 날짜(lib/vitiligoMeta 단일 원천).
+   ④-5 원장 블록(이름·학회 이력·프로필 링크)도 같은 사람이라 이 객체 하나를 쓴다 — 없으면 빌드를
+   멈춘다(연구 상세 [slug].astro 의 '저자 배정민 없음' 과 같은 규약: 이력 블록이 조용히 비면 안 된다). */
+const reviewer = await getDoctorIdentityBySlug(VITILIGO_REVIEWER_SLUG);
+if (!reviewer) throw new Error(`[vitiligo] 감수·전문 의료진 없음: doctors.json 에 slug=${VITILIGO_REVIEWER_SLUG} 행이 없다`);
+---
+
+<Base headerOverlay>
+  <SEOHead
+    slot="seo"
+    title={`백반증 | ${SITE.BRAND}`}
+    description="백반증 외길 15년 — 특수촬영 진단부터 엑시머 레이저·광선치료·색소세포 이식 수술까지. 백반증을 연구해 온 전문의가 유형과 단계에 맞춰 치료를 설계합니다."
+    jsonLd={[
+      breadcrumbLd(crumbs),
+      vitiligoPageLd({
+        name: '백반증 클리닉',
+        description:
+          '백반증 외길 15년 — 진단부터 엑시머 레이저·광선치료·색소세포 이식 수술까지. 백반증을 연구해 온 전문의가 유형과 단계에 맞춰 치료를 설계합니다.',
+        path: localeUrl(lang, 'vitiligo/'),
+        reviewer,
+        reviewedAt: VITILIGO_REVIEWED_AT,
+      }),
+    ]}
+  />
+
+  {/* ── .vt-scope — 백반증 공통 규격 토큰(src/styles/vitiligo.css)의 상속 루트.
+      이 페이지 본문 전부를 한 겹으로 감싼다(문서당 딱 한 번 — 안쪽 섹션에 다시 붙이지 말 것).
+      ⚠️ 스타일 없는 순수 래퍼다. transform·filter·overflow 를 걸면 안쪽의 position:fixed
+         (④-5 배경 .vt45-bg · 고정 카테고리 바)가 통째로 죽는다(이 저장소의 재발성 함정). ── */}
+  <div class="vt-scope">
+
+  {/* 어두운 구간 전체(히어로+검정 밴드) — Header 오버레이 임계 기준(#vitiligo-hero) */}
+  <div id="vitiligo-hero">
+    {/* ── ① Hero — 사진 5장 캐러셀(메인 페이지 형식, 원장 지시 2026-08-02).
+        문구는 컴포넌트 안 SLIDES 한 곳에서만 고친다.
+
+        headingTag="p" — 히어로 카피는 5장이 3초마다 돌아가므로 그중 한 장이 이 페이지의
+        대표 제목일 수 없다. 대신 아래 h1 이 페이지 주제를 진다(SEO/AEO 검토 2026-08-02 ①,
+        서브 7개와 같은 처방). 화면은 종전 그대로 — 태그만 바뀐다. ── */}
+    <h1 class="sr-only">백반증 클리닉 — 진단부터 광선치료·색소세포 이식 수술까지</h1>
+    <VitiligoHero headingTag="p" />
+
+    {/* ── 검정 밴드(②·③) — 애니메이션 모드에선 히어로를 덮으며 상승(커튼).
+        커튼 선두의 vt-navgap(바 높이)은 고정 카테고리 바가 정확히 덮는 자리 —
+        바가 섹션2 상단에 붙어 함께 상승하는 연출(원장 지시 2026-07-23 ②-1-1).
+        data-ctabar-reveal(원장 지시 2026-07-28 4-M-1) — 모바일 하단 푸시 바는 히어로에선
+        숨고, 이 커튼(섹션2)이 화면에 꽉 차게 올라올 때 등장(MobileCtaBar 공용 마커) ── */}
+    <div class="vt-cover relative z-10" data-ctabar-reveal>
+      <div class="vt-navgap" aria-hidden="true"></div>
+      <div class="vt-dark" data-vt-dark>
+      {/* ② Agitation — 가운데 세로 이미지 + 대각선 카피(카피는 이미지 세로 범위 안) */}
+      <section aria-label="치료 철학">
+        {/* §8 섹션 간격 3배: pb 16/24 → 48/72 */}
+        <div class="wrapper-fluid vt-philosophy-shell pb-48 pt-16 md:pb-72 md:pt-24">
+          <div class="vt-philosophy-stage relative mx-auto max-w-6xl">
+            {/* 메인 — md+: 이미지 좌상단 대각(이미지 상단에서 안쪽 8%), 모바일: 첫 줄.
+                2차 §3: 글씨 2배(1.75/2rem → 3.5/4rem) */}
+            {/* 3차 §1: 글씨 크기 = 히어로 메인카피와 동일(clamp 1.5→3.25rem, 반응형 동일 기준) */}
+            {/* 문구 위치 교체(원장 지시 2026-07-30 10차 A-2): 위치①(구 '다르게 치료하면 다릅니다')
+                ← 인용구(따옴표 포함), 크기 한 단계 축소(clamp 1.5→1.3125 / 3.25→2.75rem).
+                글씨체·색·정렬·위치·리빌은 이 자리 기존 값 그대로 */}
+            <h2 data-vt-reveal class="vt-philosophy-title break-keep text-left text-[clamp(1.3125rem,0.9rem+2.4vw,2.75rem)] font-semibold leading-[1.45] tracking-[-0.02em] text-white md:absolute md:left-0 md:top-[8%] md:z-10 md:max-w-[45%]">
+              "백반증은 불치병이라 치료받아도 소용없다고 하던데요?"
+            </h2>
+
+            {/* 가운데 세로 이미지 — 원복(원장 지시 2026-07-31: 4단계·hero-d 폐기): 기존 히어로
+                5번 슬라이드 세로 크롭. data-vt-hero-target 은 유지 — 히어로 3단계 배경(C)이 이
+                영역으로 축소 안착(마지막 12% 크로스페이드가 사진 차이를 흡수) */}
+            <div class="mx-auto mt-7 w-[73%] overflow-hidden rounded-2xl md:mt-0 md:w-[min(26rem,34vw)]" data-vt-hero-target>
+              <img
+                src="/images/vitiligo/hero/hero-05-1280.webp"
+                srcset="/images/vitiligo/hero/hero-05-760.webp 760w, /images/vitiligo/hero/hero-05-1280.webp 1280w, /images/vitiligo/hero/hero-05-1920.webp 1920w"
+                sizes="(min-width: 768px) 26rem, 100vw"
+                alt="힐하우스 백반증 광선치료실"
+                loading="lazy"
+                decoding="async"
+                class="aspect-[3/4] w-full object-cover md:aspect-[2/3]"
+              />
+            </div>
+
+            {/* 서브 — 모바일은 이미지 아래, PC는 공통 좌측 본문 폭 640px.
+                1920px 미만 PC에서는 이미지 아래로 내려 폭을 확보하고, 넓은 PC에서는 기존
+                우하단 위치를 유지한다. */}
+            <div class="vt-philosophy-copy mt-7 text-left md:absolute md:bottom-[8%] md:right-0 md:z-10 md:mt-0">
+              {/* 문구 위치 교체(원장 지시 2026-07-30 10차 A-2): 위치② ← '다르게 치료하면
+                  다릅니다' — 이 자리 크기·색·굵기·리빌 그대로(크기 변경 없음) */}
+              <p data-vt-reveal class="break-keep text-[1.1875rem] font-semibold leading-relaxed text-[#a0c5dd] md:text-[1.3125rem]">
+                다르게 치료하면 다릅니다
+              </p>
+              {/* 지정 5줄 카피 — 대각선 좁은 컬럼에선 강제 줄바꿈이 물리적으로 안 맞아
+                  자연 줄바꿈(문장 순서는 원문 그대로) */}
+              <p data-vt-reveal class="vt-left-copy mt-4 break-keep text-[0.9375rem] leading-loose text-white/80">
+                불치병이라는 오해는 '무의미한 치료의 반복'이 만든 결과입니다. 수많은 병원을
+                전전해도 늘 제자리걸음이었던 이유는 백반증이 번지는 시기인지 멈춘 시기인지
+                '정확한 진단' 없이 그저 똑같은 장비, 똑같은 레이저만 기계적으로 반복했기
+                때문입니다. 진단을 정확히 해야, 반응하는 치료를 찾을 수 있습니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ③ Authority Proof — 카운트업 4개, 풀블리드·대형(§E) */}
+      <section aria-label="진료 지표">
+        <div class="wrapper-fluid pb-10 pt-4 text-center md:pb-14 md:pt-6">
+          {/* 2차 §4: 2줄 고정 + '정확한 진단' 하늘색 */}
+          {/* vt-mtitle — 모바일 섹션 메인카피 크기 통일(기준: 섹션2, 2026-07-23 B-3) */}
+          {/* vt-mtitle-lg — 섹션3·4 제목만 확대(≈15%) + 끝 마침표 제거(원장 지시 2026-07-28 3-1·3-2) */}
+          <h2 class="vt-mtitle vt-mtitle-lg break-keep text-[1.5625rem] font-semibold leading-snug tracking-[-0.02em] text-white md:text-[2rem] lg:text-[2.25rem]">
+            차이는 경험에서 나옵니다
+          </h2>
+        </div>
+        {/* 수치 밴드 — 기존 stats-*.jpg crossfade 재사용, 숫자·라벨 확대(§E), 좌우 풀블리드 */}
+        <div class="relative overflow-hidden">
+          {
+            statsImages.length > 0 && (
+              <div class="absolute inset-0" aria-hidden="true" data-vstat-bg>
+                {statsImages.map((src, i) => (
+                  <img
+                    src={src}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    data-vstat-img={String(i)}
+                    class:list={[
+                      'absolute inset-0 h-full w-full object-cover object-center',
+                      i > 0 && `hh-vstat-xf hh-vstat-xf-${i}`,
+                    ]}
+                  />
+                ))}
+                <div class="absolute inset-0 bg-black/45" />
+              </div>
+            )
+          }
+          {/* 수치 클릭 → 해당 배경사진으로 전환(원장 지시 2026-07-24 ② 2-B) —
+              셀 = 버튼 시맨틱(키보드 조작 가능), hover/focus로 클릭 가능성 표시 */}
+          <dl class="relative grid w-full grid-cols-2 md:grid-cols-4 md:divide-x md:divide-white/30">
+            {
+              STATS.map((s, i) => (
+                <div
+                  class="hh-stat cursor-pointer select-none px-3 py-12 text-center hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none active:bg-white/15 md:py-24"
+                  data-count-cell
+                  data-stat-index={String(i)}
+                  role="button"
+                  tabindex="0"
+                  aria-label={`${s.label.join(' ')} — 배경 사진 보기`}
+                >
+                  <dd class="serif-num text-[3rem] leading-none text-white md:text-[5rem] lg:text-[5.5rem]">
+                    <span class="hh-count" data-count-to={s.num}>{s.num}</span>
+                    <span class="text-[0.55em] text-white/80">{s.unit}</span>
+                  </dd>
+                  {/* [text-wrap:balance] — 모바일 2열에서 "…진료 및 / 연구"류 한 단어 고아 방지
+                      (전수조사 2조 2026-08-01). PC는 <br/> 고정 줄이라 시각 불변 */}
+                  <dt class="mx-auto mt-4 max-w-[16em] break-keep text-[1.0625rem] leading-snug text-white/90 [text-wrap:balance] md:mt-6 md:text-[1.375rem]">
+                    {s.label.map((line, li) => (
+                      <>
+                        {li > 0 && <br />}
+                        {line}
+                      </>
+                    ))}
+                  </dt>
+                </div>
+              ))
+            }
+          </dl>
+        </div>
+      </section>
+      </div>
+    </div>
+  </div>
+  {statsXfCss && <Fragment set:html={`<style>${statsXfCss}</style>`} />}
+
+  {/* ── 상단 고정 카테고리 — 히어로에선 숨김, 검정 밴드 진입 시 등장·테마 연동(§B) ── */}
+  <VitiligoStickyNav />
+
+  {/* ── 흰 배경 구간(④~⑦) ── */}
+  <div class="relative z-10 bg-white">
+    {/* ── ④ Specialty — 3장 세로 나열(원장 지시 2026-08-03: PC/모바일 한 벌 통합) ──
+        [종전] PC = 섹션 핀 + 01→03 갈아끼우기(data-vt4p · initWheelSnap 별도 인스턴스),
+               모바일 = 그와 다른 옛 블록('힐하우스는 다릅니다' + 차별점 01~03 + card-*.jpg)
+               두 벌이 hidden md:block / md:hidden 으로 갈려 있었다.
+        [지시] "모바일이 예전 버전이다 · 한 화면에서 1,2,3 바뀌는 모션 말고 그냥 밑으로 3장
+               이어지게 · 답답하다 · 반응형으로 둘 다 동일하게".
+        ⚠️ 되돌리지 말 것 — 핀/스냅 폐기 사유는 '스크롤이 한 화면에 갇혀 답답하다'이다.
+           이 섹션은 스크롤을 어떤 식으로도 잡지 않는다(핀·스냅·휠 가로채기 전부 없음).
+        [카피·사진] 12차 확정본 그대로 — 고정 제목 없음, 라벨 = specialty.svg + 번호,
+           제목 = 단계 소제목(승격), 본문 = CARDS.paras, 사진 = specialty-step-0n.webp.
+           문구를 새로 쓰지 않는다(원장 확정본).
+        [레이아웃] 3장 모두 같은 규격(좌우 번갈이 없음 — 원장 지시). lg+ 에서만 좌 사진(420) /
+           우 텍스트 2단이고, 그 아래는 사진 위·텍스트 아래 1단. md(768~1023)에서 2단을 쓰면
+           텍스트 칸이 220px대로 좁아져 확정 줄바꿈이 뭉개진다(1440 기준 설계값이라 그렇다).
+        [등장 연출] 페이지 공용 [data-vt-reveal] IO 재사용 — 새 rAF 루프 없음. 전역 원칙
+           '스르륵, 서서히'에 맞춰 아래 .vt4s-item 규칙에서 0.8s 페이드업. */}
+    <section aria-label="힐하우스 백반증 Specialty">
+      {/* 좌우 인셋: 이 섹션 하나가 두 트랙을 겸하므로 컨테이너도 양쪽 형제에 각각 맞춘다.
+          ≤767 = .wrapper-fluid(위 ②·③, 아래 ④-5 모바일과 같은 clamp 인셋),
+          ≥768 = .wrapper 기하(아래 ④-5 PC·⑤~⑦ PC 와 같은 1400 + 2rem) — vt4s-wrap 규칙.
+          ⚠️ 한쪽으로 통일하면 안 된다. 실측(2026-08-03): wrapper 로 통일하면 700px 에서
+             아래 하늘 띠와 좌변이 11.5px 어긋나고, wrapper-fluid 로 통일하면 1440 에서
+             위아래 PC 섹션과 12.8px 어긋난다.
+          여백: 모바일 pt-48/pb-28 은 종전 모바일 블록 값 그대로(아래 하늘 띠 pt 80과 합쳐 192
+          리듬 유지), md+ 는 종전 PC 핀 섹션 값 그대로(140/120) */}
+      <div class="wrapper-fluid vt4s-wrap pb-28 pt-48 md:pb-[120px] md:pt-[140px]">
+        {/* lg+ 세로 정렬 = items-center(원장 지시 2026-08-07 "PC에서 1,2,3 글자 덩어리를
+            사진 높이의 중앙으로"). 종전 items-start 는 텍스트를 사진 상단에 맞춰, 사진(420×600)보다
+            200px 넘게 짧은 텍스트가 매번 위로 쏠려 있었다. 세 장 모두 텍스트가 사진보다
+            짧으므로(실측 ≈380px < 600px) center 는 항상 '텍스트가 사진 세로 중앙'이 된다.
+            lg 미만은 1단이라 이 규칙이 걸리지 않는다 — 모바일 배치 불변. */}
+        <div class="space-y-24 lg:space-y-[120px]">
+          {CARDS.map((card, i) => (
+            <article
+              class="vt4s-item grid gap-8 lg:grid-cols-[420px_minmax(0,1fr)] lg:items-center lg:gap-x-[clamp(3rem,8vw,7.5rem)]"
+              data-vt-reveal
+            >
+              {/* 사진 — 원본 560×800(7:10).
+                  · lg+ 는 7:10 유지 → 420×600 으로 종전 PC 핀 섹션과 **픽셀 동일**.
+                  · lg 미만은 4:5 로 낮춘다(원장 지시 2026-08-03 "모바일 사진크기는 니가 보고 판단해").
+                    3장이 세로로 이어지게 바뀌면서 7:10 이면 375px 에서 장당 479px — 스크롤이
+                    사진만으로 채워진다. 4:5 면 419px 로 장당 60px, 3장 180px 줄어든다.
+                    ⚠️ 1:1 까지 낮추지 않은 이유: 인물 세로 사진이라 정사각은 머리·어깨가 잘린다.
+                  13차 축소 이력: 800×560 → 768×540 → 720×508 → 600×420(원장 '아직도 크다') */}
+              <img
+                src={`/images/vitiligo/landing/specialty-step-0${i + 1}.webp`}
+                alt={card.alt}
+                width="560"
+                height="800"
+                loading="lazy"
+                decoding="async"
+                class="aspect-[4/5] w-full max-w-[420px] rounded-[24px] bg-cream object-cover lg:aspect-[7/10]"
+              />
+              <div>
+                <p class="flex items-baseline gap-2.5">
+                  <img src="/images/vitiligo/landing/svg/specialty.svg" alt="Specialty" width="130" height="33" class="h-auto w-[104px] md:w-[130px]" />
+                  <span class="text-[24px] font-semibold leading-none text-brand md:text-[30px]" aria-hidden="true">{i + 1}</span>
+                  <span class="sr-only">{i + 1}</span>
+                </p>
+                <h3 class="mt-5 break-keep text-[24px] font-semibold leading-[36px] tracking-[-0.02em] text-ink md:mt-6 md:text-[38px] md:leading-[54px]">{card.title}</h3>
+                <div class="vt-left-copy mt-5 space-y-4 break-keep text-[16px] leading-[28px] text-charcoal md:mt-7 md:text-[18px] md:leading-[32px]">
+                  {card.paras.map((para) => (
+                    <p class:list={[para.bold && 'font-semibold text-ink']}>
+                      {para.lines.map((line, li) => (
+                        <>
+                          {/* 확정 줄바꿈은 데스크톱만 — 모바일은 자연 흐름(구 모바일 블록과 같은 처방).
+                              max-md:hidden 은 이 파일 다른 곳(⑧ 안내 문구)에서도 쓰는 관용구 */}
+                          {li > 0 && <br class="max-md:hidden" />}
+                          {line}{' '}
+                        </>
+                      ))}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="vt-guide bleed" aria-labelledby="vt-guide-title">
+      <div class="wrapper vt-guide-inner">
+        <header class="vt-guide-head" data-vt-reveal>
+          <p class="vt-guide-kicker">Treatment Journey</p>
+          <h2 id="vt-guide-title" class="vt-added-title">내 상태에 맞는 치료는<br class="max-md:hidden" /> 어떻게 정할까요?</h2>
+          <p>
+            백반증 치료는 한 가지 방법을 고르는 일이 아닙니다. 병의 활동성·발생 부위·범위·이전 치료 반응을 함께 살펴 치료의 순서와 조합을 정합니다.
+          </p>
+          <p class="vt-guide-note">실제 치료 계획은 진단과 경과 관찰을 바탕으로 의료진과 상의해 정합니다.</p>
+        </header>
+        <ol class="vt-guide-list">
+          {TREATMENT_GUIDE.map((item, index) => (
+            <li data-vt-reveal style={`--vt-guide-delay:${index * 70}ms`}>
+              <span class="vt-guide-no" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+              <div>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </div>
+              <a href={item.href} aria-label={`${item.title} — ${item.link} 페이지 보기`}>
+                <span>{item.link}</span><span aria-hidden="true">↗</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    {/* ── ④-5 백반증 전문 의료진 — PC·모바일 단일 반응형 DOM ── */}
+    <section aria-labelledby="vt45-title" class="vt45 relative">
+      <div class="vt45-bg" aria-hidden="true"></div>
+      <div class="wrapper relative py-20 md:py-[140px]">
+        <p class="text-[18px] font-semibold leading-[28px] text-brand md:text-[20px]">Vitiligo Specialist</p>
+        <h2 id="vt45-title" class="mt-3 break-keep text-[34px] font-semibold leading-[46px] tracking-[-0.02em] text-white md:mt-4 md:text-[52px] md:leading-[68px]">
+          백반증을<br />오래 연구해 온 의사
+        </h2>
+
+        <div class="mt-8 grid gap-10 md:mt-10 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:items-start md:gap-x-[clamp(3rem,7vw,6.5rem)]">
+          <div class="vt-left-copy space-y-4">
+            {doctor.body.map((para) => (
+              <p class="break-keep text-[15px] leading-[27px] text-white/90 md:text-[16px] md:leading-[28px]">{para}</p>
+            ))}
+          </div>
+          <div>
+            <ul>
+              {/* 학회 이력 = doctors.societies(운영앱 「학회」 입력, 원장 페이지 학회 열·JSON-LD memberOf 와 같은 원천) */}
+              {reviewer.societies.map((society) => (
+                <li class="flex items-baseline gap-3 border-b border-white/30 py-3 text-[15px] leading-[26px] text-white first:pt-0 md:text-[16px] md:leading-[28px]">
+                  <span aria-hidden="true" class="text-white/70">+</span>
+                  <span class="break-keep">{society}</span>
+                </li>
+              ))}
+            </ul>
+            <a href={localeUrl(lang, `doctors/${reviewer.slug}/`)} class="group mt-[30px] flex min-h-11 w-fit items-center gap-2 text-[15px] font-medium leading-[20px] text-white md:text-[16px]">
+              {reviewer.name} 원장님 프로필
+              <span aria-hidden="true" class="vt-nudge group-hover:translate-x-1">→</span>
+            </a>
+          </div>
+        </div>
+
+        {/* 모바일 풀블리드(원장 지시 2026-08-07 "모바일에서는 좌우 여백 없이 꽉 차게") —
+            .vt45-bleed 규칙이 global.css `.bleed` 와 같은 공식(margin-inline: calc(50% - 50vw))을
+            767 이하에서만 건다. 부모 .wrapper 의 좌우 1.25rem 을 상쇄해 화면 전폭이 된다.
+            md+ 는 종전 그대로 컨테이너 폭 유지. */}
+        <div
+          class="vt45-bleed relative mt-[60px] flex aspect-[7/2] w-full snap-x snap-mandatory overflow-x-auto bg-[#0d0e10]"
+          data-doctor-carousel
+          role="region"
+          aria-roledescription="carousel"
+          aria-label={`${reviewer.name} 원장님 백반증 연구 활동 사진`}
+        >
+          {specialistImages.map((src, index) => (
+            <img
+              src={src}
+              alt={[
+                '백반증 관련 연구 논문 모음',
+                '백반증 학술대회에서 발표하는 배정민 원장님',
+                '백반증 학술 강의를 듣는 배정민 원장님',
+                '국제 백반증 심포지엄에서 발표하는 배정민 원장님',
+              ][index]}
+              width="1400"
+              height="400"
+              loading="lazy"
+              decoding="async"
+              data-doctor-slide
+              class="vt-step-fade h-full w-full shrink-0 snap-start object-cover motion-reduce:transition-none"
+            />
+          ))}
+          {/* 좌우 넘김 — 원형 배경 폐기(원장 지시 2026-08-07 "동그라미 빼고 화살표만").
+              접근성은 배경이 아니라 아래 셋이 지탱한다:
+              ① 접근명 = aria-label(글리프는 aria-hidden 장식) — 배경과 무관하게 그대로,
+              ② 포커스 표시 = focus-visible 흰 아웃라인 유지(원형이 사라져도 사각 링으로 보인다),
+              ③ 터치 타깃 = h-10 w-10(40px) → h-11 w-11(44px). WCAG 2.5.8 최소치를 배경 없이도
+                 확보한다(배경이 있을 땐 40px 원이 시각적 힌트를 겸했지만 이제 없다).
+              추가로 흰 화살표가 밝은 사진 위에서 사라지지 않도록 글리프에 drop-shadow 를 준다
+              (배경 오버레이가 하던 대비 확보를 글리프 자체로 옮긴 것).
+              글리프는 이 파일 ⑤(PC) 후기 화살표와 같은 규격(24×24·stroke 1.5·-scale-x-100 반전) 재사용.
+              바깥 inset(3/5)은 종전 그대로 — 버튼 40→44, 글리프 16→24 라 안쪽 패딩이 12→10px 로
+              줄어, 화면상 화살표 위치는 종전 대비 2px 안쪽이다(사실상 동일). */}
+          <div data-doctor-controls hidden class="absolute inset-x-3 top-1/2 flex -translate-y-1/2 justify-between md:inset-x-5">
+            <button type="button" data-doctor-prev aria-label="이전 사진" class="vt-tint-fade flex h-11 w-11 items-center justify-center text-white hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="drop-shadow-[0_1px_3px_rgb(0_0_0_/_0.55)]"><path d="M12 22.304L1.69604 12L12 1.69602" stroke="currentColor" stroke-width="1.5" /></svg>
+            </button>
+            <button type="button" data-doctor-next aria-label="다음 사진" class="vt-tint-fade flex h-11 w-11 items-center justify-center text-white hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="-scale-x-100 drop-shadow-[0_1px_3px_rgb(0_0_0_/_0.55)]"><path d="M12 22.304L1.69604 12L12 1.69602" stroke="currentColor" stroke-width="1.5" /></svg>
+            </button>
+          </div>
+          <div data-doctor-controls hidden class="absolute inset-x-0 bottom-3 flex justify-center gap-2" aria-hidden="true">
+            {specialistImages.map((_, index) => (
+              <span data-doctor-dot class:list={['vt-tint-all h-1.5 rounded-full bg-white/55', index === 0 ? 'w-6 bg-white' : 'w-1.5']} />
+            ))}
+          </div>
+          <p class="sr-only" aria-live="polite" aria-atomic="true" data-doctor-status></p>
+        </div>
+      </div>
+    </section>
+
+    {/* ── ⑤ 후기 — 전 뷰포트 **단일 블록**(검수 2026-08-11 — 크롤러 이중 렌더 제거, 원장 확정).
+        종전에는 PC 블록(hidden md:block, ReviewSlider)과 모바일 블록(md:hidden, 전용 .vt-slider
+        마크업 + [data-vt5] 스크립트)이 같은 REVIEWS 22건을 정적 HTML 에 두 번 실었다.
+        → ReviewSlider(반응형 내장 — 모바일 240×280 카드·본문 line-clamp) **한 벌**이 전 폭을
+        담당하고, 모바일 전용 커스텀 슬라이더(마크업·스크립트·.vt-slider CSS)는 삭제했다.
+        PC 는 종전 픽셀 그대로. 모바일은 카드가 커스텀 흰 카드 → ReviewSlider 카드로 바뀐다
+        (원장 실물 확인 대상 — 상세는 아래 각 지점 주석).
+        섹션 이름 vt5p(-p = 구 PC 블록 유래)·배경 .vt5p 는 CSS·계약 테스트 앵커라 그대로 둔다.
+        배경 = 참고 시안 실측 그라데이션(흰 → #CCE4F3 계열) — 이제 모바일에도 깔린다. ── */}
+    <section aria-labelledby="vt5p-title" class="vt5p relative overflow-hidden pb-48 pt-28 md:pb-[120px] md:pt-[140px]">
+      <div class="wrapper md:text-center">
+        {/* 아이브로우 — 뷰포트별 **다른 카피**라 이중 렌더가 아니다(지시: 모바일 전용 카피는
+            반응형으로 유지). 모바일 = 종전 모바일 블록의 'Real Review · ★★★★★ 5.0',
+            md+ = 홈 공통 아이브로우 규격의 'REVIEW'(원장 지시 2026-08-01 "모두 대문자"). */}
+        <p class="label-caps text-sky-deep md:hidden">Real Review · <span aria-hidden="true">★★★★★</span> 5.0</p>
+        <p class="hidden text-[20px] font-semibold leading-[28px] text-brand md:block">REVIEW</p>
+        <div class="relative mt-3">
+          {/* 제목 — 한 벌. 모바일 = 종전 sec-title·vt-mtitle 그대로, md+ 는 종전 PC 블록의
+              36px/54px·자간 normal 을 유틸리티로 복원(sec-title 의 -0.02em 을 덮는다).
+              id 는 구 모바일 블록의 vt5-title 이 아니라 vt5p-title 을 계승(계약 테스트 앵커). */}
+          <h2 id="vt5p-title" class="sec-title vt-mtitle break-keep md:text-[36px] md:leading-[54px] md:tracking-normal">
+            피부보다 사람을 먼저 봅니다
+          </h2>
+          {/* PC 화살표 — 메인 ⑤와 완전 동일 스펙(24×24 스트로크·#BABDC0→잉크·44px·gap 10px).
+              Swiper 연결은 ReviewSlider [data-rs-prev/next] 셀렉터 그대로 */}
+          <div class="absolute inset-y-0 right-0 hidden items-center gap-2.5 md:flex">
+            <button
+              type="button"
+              data-rs-prev
+              aria-label="이전 후기"
+              class="flex h-11 w-11 items-center justify-center text-[#BABDC0] transition-colors hover:text-ink"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 22.304L1.69604 12L12 1.69602" stroke="currentColor" stroke-width="1.5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              data-rs-next
+              aria-label="다음 후기"
+              class="flex h-11 w-11 items-center justify-center text-[#BABDC0] transition-colors hover:text-ink"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="-scale-x-100">
+                <path d="M12 22.304L1.69604 12L12 1.69602" stroke="currentColor" stroke-width="1.5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        {/* 서브 카피 — 문구는 한 벌(검수 2026-08-11 — 크롤러 이중 렌더 제거). 모바일 = 종전
+            sec-sub 자연 흐름 그대로(줄바꿈 강제 없음), md+ = 참고 시안 기준 3줄 분리(<br> 은
+            md+ 에서만 산다 — 소스 줄바꿈이 모바일에서 공백으로 붙어 종전 문단과 동일). */}
+        <p class="sec-sub mt-4 break-keep md:mx-auto md:mt-5 md:max-w-4xl md:text-[16px] md:leading-[28px]">
+          하얀 반점을 줄이는 것만이 치료의 전부는 아닙니다.<br class="max-md:hidden" />
+          치료 전에 충분히 설명하고, 반복적인 물리적 자극처럼 피해야 할 생활 요인까지 함께 안내합니다.<br class="max-md:hidden" />
+          오래 걸리는 치료일수록, 과정을 아는 환자가 흔들리지 않습니다.
+        </p>
+        {/* 개인차·면책 — 후기 카드보다 **먼저** 읽히게 구획 상단에 둔다(공용 컴포넌트).
+            후기 구획이 한 벌이 되며 이 한 줄도 페이지에 한 번만 나간다. */}
+        <ReviewDisclaimer factors="백반증의 유형·활동성·부위" class="mt-4 md:mx-auto md:max-w-4xl" />
+      </div>
+      {/* 슬라이더 — ReviewSlider 가 반응형을 내장한다: PC = 430px 카드·전문 표시(min-h 250 가변),
+          모바일 = 240×280 고정 카드·본문 line-clamp·카드 아래 우측 화살표(md:hidden).
+          PC 화살표(위 제목 줄 우측)와 모바일 화살표는 Swiper 가 셀렉터 문자열로 둘 다 바인딩. */}
+      <div class="mt-4">
+        <ReviewSlider items={vtReviewItems} variant="vitiligo" />
+      </div>
+    </section>
+
+    {/* ── ⑦ 연구 소개 — PC·모바일 단일 반응형 DOM(원장 지시 2026-08-07) ──
+        [종전] PC = 이 블록(hidden md:block, 5건 + 전체 보기), 모바일 = 별도 md:hidden 블록
+               (가운데 정렬 헤더 + FeedList 10건·+10 더보기 + 전체 보기) 두 벌이었다.
+        [지시] "모바일은 최신 연구 5개만 · 아래로 펼치는 더보기 없앨 것 · 대신 '연구 소개 더 보기 >'
+               로 /vitiligo/research/ 이동 · PC 도 같은 문구로 통일 · 디자인은 '백반증이란'
+               페이지의 연구 소개 것". 모바일에서 개수·더보기·문구·디자인이 전부 PC 와 같아졌으므로
+               두 벌을 유지할 근거가 사라졌다 → 옛 모바일 FeedList 블록은 삭제하고 이 블록 하나가
+               두 폭을 모두 담당한다(④·④-5 가 이미 같은 방식으로 통합돼 있다).
+        ⚠️ 디자인 출처는 '백반증이란' 의 연구 소개 섹션(옛 `.vta-s8`)이었고, SVG 한 장 + 목록
+           디자인 + 모바일 1단 적층까지 그쪽 값을 그대로 옮겨왔다(대조표는 .vt7p-* 스타일 주석).
+           **그 원본은 2026-08-07 원장 지시로 삭제됐다** — 이제 쌍둥이가 아니라 이 블록이 유일한
+           정본이다. 값을 고칠 때 맞춰야 할 상대가 없으니 여기서 자유롭게 결정하면 된다.
+           (단 항목 링크 호버는 원본의 볼드+밑줄이 아니라 하이라이트다 — 원장 지시 2026-08-07.)
+        모바일도 사이트 공용 .wrapper 로 내용의 좌우 선을 유지한다. ── */}
+    {
+      researchPapers.length > 0 && (
+        <section aria-labelledby="vt7p-title" class="vt7p">
+          <div class="wrapper pb-28 pt-24 md:pb-[120px] md:pt-[140px]">
+            {/* 모바일 1단 · md+ 2단. 1단일 때 두 칸 사이 90px 은 '백반증이란' 쪽
+                `.vta-research-column { margin-top: 90px }` 값 그대로. */}
+            <div class="vt7p-grid grid gap-y-[90px] md:grid-cols-2 md:gap-x-[clamp(3rem,6vw,6rem)] md:gap-y-0">
+              <div class="flex flex-col">
+                <div>
+                  {/* 영문 라벨 — 홈 공통 아이브로우 규격(원장 지시 2026-08-01 "모두 대문자"). 타이포는 종전 동일. */}
+                  <p class="text-[20px] font-semibold leading-[28px] text-brand">HEALHOUSE VITILIGO</p>
+                  {/* 26 → 36px 는 이 파일 ⑧ 제목과 같은 반응형 규격(모바일에서 36px 은 3줄로 무너진다) */}
+                  <h2 id="vt7p-title" class="mt-3 break-keep text-[26px] font-semibold leading-[1.4] text-ink md:text-[36px]">
+                    힐하우스 백반증 연구 소개
+                  </h2>
+                  {/* 제목↔내용 40px(모바일 24px) */}
+                  <p class="vt-left-copy mt-6 break-keep text-[16px] leading-[28px] text-charcoal md:mt-10">
+                    환자 한 명 한 명을 더 정확히 보기 위해 끊임없이 연구합니다.<br />
+                    전 세계가 인정하는 배정민 원장의 205편+ 연구 기록 중 핵심 연구를 소개합니다.
+                  </p>
+                </div>
+                {/* 좌하단 마크 — 종전 두 장(vitiligo-research.svg + 205plus.svg)을 한 장으로 통합
+                    (원장 지시 2026-08-07 "기존에 두 개로 나뉘어 있었다면 이 한 파일로 통합").
+                    ⚠️ 전달본은 숫자가 `102+` 였는데, 원장이 이어서 "연구 논문 수는 205편+로 하자.
+                       그 중에 주요 연구를 소개하는 것으로" 라고 확정했다(102 = 백반증 논문,
+                       205 = 전체 발표 실적). 그래서 전달본 워드마크는 그대로 쓰고 숫자 그룹만
+                       기존 205plus.svg 로 교체한 합성본(research-205-plus.svg)을 쓴다.
+                       전달본에서 숫자가 놓였던 자리(x=0, y=141)를 그대로 쓰며, 102plus(227px)와
+                       205plus(257px)는 높이가 88px 로 같아 세로 정렬이 어긋나지 않는다.
+                       205+ 통합 원본을 받으면 이 합성본을 그것으로 교체하면 된다.
+                    block — 인라인 라인박스 하단 여백(≈3px) 제거: 마크 하단 = 목록 하단 정확 일치.
+                    ⚠️ '백반증이란' 쪽 `.vta-research-mark` 의 mix-blend-mode: screen 은 **가져오지 않았다**.
+                    마크 색이 #8EB8D5(밝은 하늘)라 screen 은 배경이 밝을수록 흰색으로 날아간다 —
+                    저쪽 배경(about/research-bg.webp, 실측 평균 195,218,231)과 달리 이 섹션 배경
+                    (landing/research-bg.webp, 실측 평균 248,251,253)은 거의 흰색이라 마크가 사라진다.
+                    종전 이 자리 두 장도 blend 없이 그대로 얹던 방식이라 그 처리를 유지한다. */}
+                <img
+                  src="/images/vitiligo/about/research-205-plus.svg"
+                  alt="Vitiligo Research 205+"
+                  width="585"
+                  height="233"
+                  loading="lazy"
+                  decoding="async"
+                  class="mt-auto block h-auto w-[585px] max-w-full pt-16"
+                />
+              </div>
+              {/* 우(모바일에서는 아래) — 연구 목록. 디자인 정본 = VitiligoAboutPanel `.vta-research-*`
+                  (원장 지시 2026-08-07 "'백반증이란' 섹션 디자인 그대로"). 최신 5건(researchTop)은
+                  PC·모바일 공통 — 모바일도 5개로 맞추라는 지시(그쪽 '백반증이란'은 6건).
+                  ⚠️ 항목 텍스트에 data-label 을 달지 않는다 — 그 속성은 호버 볼드용 고스트
+                     (`::after { content: attr(data-label) }`) 전용이었고, 호버가 하이라이트로
+                     바뀌며 고스트를 폐기했다(아래 .vt7p-research-list 주석). */}
+              <div>
+                <ol class="vt7p-research-list">
+                  {researchTop.map((p) => (
+                    <li>
+                      <span class="vt7p-research-dot" aria-hidden="true" />
+                      <div>
+                        {/* 제목은 태그와 같은 줄에 — 줄바꿈으로 앞뒤 공백이 들어가면
+                            inline 배경 하이라이트가 그 공백까지 칠한다. */}
+                        <a href={localeUrl(lang, `vitiligo/research/${p.slug}/`)} data-research-list-intent={p.slug}>{p.subtitle_en || p.subtitle_ko}</a>
+                        <p>
+                          {p.journal}
+                          {p.year ? ` (${p.year})` : ''}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                {/* 문구 '연구 소개 더 보기 >'(원장 지시 2026-08-07) — PC·모바일 통일.
+                    종전 PC '연구 소개 전체 보기', 모바일은 같은 문구에 → 글리프였다. */}
+                <a href={localeUrl(lang, 'vitiligo/research/')} class="vt7p-research-all">
+                  연구 소개 더 보기
+                  <svg width="8" height="12" viewBox="0 0 8 12" fill="none" aria-hidden="true">
+                    <path d="m1 1 5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      )
+    }
+  </div>
+
+  </div>{/* /.vt-scope */}
+</Base>
+
+<style>
+  /* 검정 밴드 — §A 배경 체계. 커튼(-100svh)은 히어로 시퀀스 스크립트가 html.vhseq-on을
+     켤 때만(모션 허용 시 전 뷰포트 — 2026-07-23 B-1 모바일 확대) — reduced-motion·no-JS는 일반 흐름 */
+  .vt-dark {
+    background: #0d0e10;
+  }
+
+  /* 치료 철학: 좌측 정렬 본문은 PC 전 구간에서 640px을 확보한다. 좁은 PC에서 기존
+     대각 배치 안에 억지로 겹치지 않도록 사진 아래로 내리고, 넓은 화면에서만 우하단 배치를
+     유지한다. 1920px에서는 바깥 fluid 여백을 사용해 사진과 본문 사이에 간격이 남는다. */
+  @media (min-width: 768px) {
+    .vt-philosophy-copy {
+      width: min(640px, 100%);
+      max-width: none;
+    }
+  }
+  @media (min-width: 768px) and (max-width: 1919.98px) {
+    .vt-philosophy-shell {
+      padding-bottom: 88px;
+    }
+    .vt-philosophy-copy {
+      position: relative;
+      right: auto;
+      bottom: auto;
+      margin-top: 40px;
+      margin-left: auto;
+    }
+  }
+  @media (min-width: 1920px) {
+    .vt-philosophy-stage {
+      max-width: none;
+    }
+    .vt-philosophy-title {
+      left: max(0px, calc((100% - 1152px) / 2));
+      max-width: 518.4px;
+    }
+  }
+  /* 커튼 선두 바 자리 — 고정 카테고리 바(VitiligoStickyNav)가 이 위를 정확히 덮는다.
+     바와 같은 var를 봐서 높이 어긋남 없음(2026-07-23 ②) */
+  .vt-navgap {
+    height: var(--vt-catnav-h);
+    background: #0d0e10;
+  }
+  /* ── PC 개편 새 섹션(원장 지시 2026-07-30 8차) ─────────────────────────
+     ④ Specialty 3장 — 등장 연출은 페이지 공용 [data-vt-reveal](IO 스크립트가 is-in 부여)을
+     그대로 쓴다. 다만 공용 초기 숨김 CSS 는 모바일(≤767) 한정이라, 이 섹션만 전 폭에서
+     걸리도록 클래스로 한 번 더 선언한다.
+     ⚠️ 공용 규칙의 미디어쿼리를 PC까지 넓히면 안 된다 — 페이지 전체 [data-vt-reveal]
+        (섹션 ②·⑤ 등)의 PC 동작(항상 표시)이 통째로 바뀐다. 그래서 스코프를 좁혔다.
+     ⚠️ 선택자를 .vt4s-item[data-vt-reveal] 로 둔 것도 의도 — 모바일에서 공용 규칙과
+        특이도가 같으면 소스 순서에 값이 좌우된다(0,3,1 vs 0,2,1 로 항상 이 규칙이 이긴다).
+     핀 시퀀스(vt4p-*) CSS 는 2026-08-03 통합에서 마크업과 함께 제거했다. */
+
+  /* ④ 컨테이너 — 마크업에서 .wrapper-fluid 와 함께 쓴다. ≤767 은 .wrapper-fluid 인셋을
+     그대로 두고(모바일 형제와 동일), md+ 에서만 .wrapper 기하로 갈아탄다.
+     ⚠️ 아래 세 값은 global.css `.wrapper` 의 md+ 정의를 그대로 옮긴 것이다 — 그쪽이 바뀌면
+        여기도 함께 고쳐야 한다(컴포넌트 클래스는 미디어쿼리로 갈아끼울 수 없어 불가피한 중복).
+     ※ Astro 스코프 스타일은 레이어 밖이라 @layer components 의 .wrapper-fluid 를 이긴다. */
+  @media (min-width: 768px) {
+    .vt4s-wrap {
+      margin-inline: auto;
+      max-width: var(--site-shell);
+      padding-inline: var(--site-gutter);
+    }
+  }
+
+  :global(html.vt-reveal-on) .vt4s-item[data-vt-reveal] {
+    opacity: 0;
+    transform: translateY(24px);
+    /* 0.8s — 전역 원칙 '스르륵, 서서히'. 블록이 크므로 공용 등장(--editorial-reveal-duration
+       700ms)보다 한 박자 길게. 「같게 맞추지 말 것」이 이 주석의 뜻이므로 2026-09-04 값
+       일관성 작업에서도 토큰으로 합치지 않고 리터럴을 남긴다(공용 값 표기만 갱신). */
+    transition:
+      opacity 0.8s var(--ease-editorial),
+      transform 0.8s var(--ease-editorial);
+  }
+  :global(html.vt-reveal-on) .vt4s-item[data-vt-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ④-5 — 배경 고정 효과: background-attachment:fixed 대신 clip-path 컨테이너 +
+     position:fixed 레이어(합성 친화, 본문 스크롤 시 배경이 제자리 — 지시 권장안) */
+  .vt45 {
+    clip-path: inset(0 0 0 0);
+    background: #0d0e10; /* 이미지 로드 전 폴백 */
+  }
+  .vt45-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: #0d0e10 url('/images/vitiligo/landing/doctor-band-bg.webp') center / cover no-repeat;
+  }
+  .vt45-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.55); /* 텍스트 대비 확보 오버레이(시안 톤) */
+  }
+  /* ④-5 연구 활동 사진 — 모바일만 화면 전폭(원장 지시 2026-08-07 "좌우 여백 없이 꽉 차게").
+     공식은 global.css `.bleed`(margin-inline: calc(50% - 50vw)) 그대로다 — 그 클래스는 반응형
+     게이트가 없어 md+ 까지 같이 터지므로, 같은 선언을 이 브레이크포인트에만 건다.
+     스크롤바 폭 초과분은 base 레이어의 body overflow-x clip 이 흡수(global.css 주석 참조). */
+  @media (max-width: 767px) {
+    .vt45-bleed {
+      margin-inline: calc(50% - 50vw);
+    }
+  }
+
+  /* ⑤(PC) 후기 — 참고 시안 실측 그라데이션(상단 흰 → 카드 구간 #CCE4F3 계열) */
+  .vt5p {
+    background: linear-gradient(180deg, #ffffff 0%, #f7fafc 28%, #cce4f3 76%, #d6eaf6 100%);
+  }
+
+  /* ⑦(PC) 연구 소개 — 전달 배경(research-bg: 좌하단 블루 글로우) */
+  .vt7p {
+    background-image: url('/images/vitiligo/landing/research-bg.webp');
+    background-size: cover;
+    background-position: center bottom;
+  }
+
+  /* 연구 소개: 640px 좌측 본문을 우선한다. 두 열을 함께 담기 어려운 좁은 PC에서는
+     연구 목록을 다음 행으로 내려 어떤 PC 폭에서도 본문이 임의의 절반 폭으로 눌리지 않는다. */
+  @media (min-width: 768px) and (max-width: 1199.98px) {
+    .vt7p-grid {
+      grid-template-columns: minmax(0, 640px);
+      row-gap: 90px;
+    }
+  }
+  @media (min-width: 1200px) {
+    .vt7p-grid {
+      grid-template-columns: minmax(0, 640px) minmax(0, 1fr);
+    }
+  }
+
+  /* ── ⑦ 연구 목록 — 원장 지시 2026-08-07 "'백반증이란' 섹션 디자인 그대로".
+     정본 = src/components/vitiligo/VitiligoAboutPanel.astro `.vta-research-list` /
+     `.vta-research-dot` / `.vta-research-all`. 아래 선언은 그 블록을 값까지 그대로 옮긴 것이다
+     (Astro scoped 라 클래스명을 공유할 수 없어 접두어만 vt7p- 로 바꿨다).
+     종전 이 자리 디자인(밑줄 구분선 border-b + stretched-link + 저널 #A5A7AA 12/16)은 폐기.
+     ⚠️ 딱 한 곳만 정본과 다르다 — 항목 링크 **호버 연출**(원장 지시 2026-08-07 2차:
+        "볼드체와 밑줄 넣지 말고 하이라이트가 쳐지는 것으로"). 저쪽 정본은 아직 볼드+밑줄이다. ── */
+  .vt7p-research-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .vt7p-research-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .vt7p-research-dot {
+    width: 5px;
+    height: 5px;
+    margin-top: 9px;
+    flex: 0 0 5px;
+    border-radius: 50%;
+    background: #6899C0;
+  }
+  /* 링크 본체 — 호버 하이라이트(형광펜) 연출.
+     · display 를 정본의 inline-grid → inline 으로 되돌렸다. inline-grid 는 오직 '볼드 고스트'를
+       같은 grid-area 에 겹쳐 폭을 예약하려던 장치였고(::after { content: attr(data-label) }),
+       볼드가 사라진 지금은 소비처가 0이다. 게다가 inline-grid 는 박스가 하나라 여러 줄 제목에
+       띠가 '가장 긴 줄 폭의 사각형' 하나로 깔린다 — inline 이라야 줄마다 형광펜이 그어진다.
+     · 배경 띠 색 = rgb(104 153 192 / 0.3). #6899C0 은 이 섹션이 이미 쓰는 유일한 유채색
+       (목록 불릿 .vt7p-research-dot · '연구 소개 더 보기' 링크 색)이라, 새 색을 들이지 않고
+       그 accent 의 30% 틴트만 쓴다. 근처 배경(landing/research-bg.webp 실측 평균 248,251,253)
+       위에서 ≈#C4D8E8 로 깔리고, 그 위 본문색 #292A2B 대비는 9:1 대로 AA(4.5:1) 여유.
+     · 왼→오 차오름 = background-size 의 x 축만 0 → 100%. background-position: 0 0 은
+       inline 요소의 배경 영역(폰트 박스 ≈1.15em)에 맞춰 글자 뒤에 정확히 깔린다.
+     · box-decoration-break: clone — 제목이 두 줄로 접힐 때 줄마다 독립된 띠가 그어지게 한다
+       (기본 slice 는 '끊기지 않은 한 박스' 기준이라 둘째 줄이 통째로 칠해지거나 빈다). */
+  .vt7p-research-list a {
+    display: inline;
+    color: var(--color-ink);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+    background-image: linear-gradient(rgb(104 153 192 / 0.3), rgb(104 153 192 / 0.3));
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    background-size: 0% 100%;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    /* 링크 hover 의 형광펜 차오름 — 색 계열 즉각 반응이라 --motion-tint(종전 320ms,
+       원장 지시 2026-09-04 「값 일관성」). */
+    transition: background-size var(--motion-tint) var(--ease-editorial);
+  }
+  .vt7p-research-list a:hover,
+  .vt7p-research-list a:focus-visible {
+    background-size: 100% 100%;
+  }
+  .vt7p-research-list li p {
+    margin-top: 4px;
+    color: #7C8288;
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .vt7p-research-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 32px;
+    color: #6899C0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+  .vt7p-research-all svg {
+    flex: none;
+    /* 손끝에 반응해 움직이는 화살표 = --motion-lift. 이 페이지에 250ms ease-out 과
+       300ms(Tailwind 기본 곡선) 두 갈래가 있었는데 하나로 모았다(.vt-nudge 와 같은 값). */
+    transition: transform var(--motion-lift) var(--ease-editorial);
+  }
+  .vt7p-research-all:hover svg,
+  .vt7p-research-all:focus-visible svg {
+    transform: translateX(4px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vt7p-research-all svg,
+    /* 하이라이트는 '차오르는' 연출이라 모션 축소 시 전환만 끈다 — 띠 자체는 즉시 100%로 나타나
+       호버 피드백이 사라지지 않는다. */
+    .vt7p-research-list a {
+      transition: none;
+    }
+  }
+
+  /* ── 모션 사다리 표식(원장 지시 2026-09-04 「이런 값도 전체적으로 일관성이 있으면 좋겠어」) ──
+     이 페이지의 Tailwind 유틸(transition-colors·transition-opacity·transition-all·
+     transition-transform)은 --default-transition-duration 을 읽어 150~300ms 로 흩어져
+     있었다. 전역 기본값을 덮으면 공개 사이트·운영앱·검수앱의 모든 전환이 함께 끌려가므로
+     유틸을 걷어내고 자리마다 역할 토큰을 명시한다. */
+  .vt-nudge {
+    /* 손끝에 반응해 움직이는 화살표(종전 duration-300 + Tailwind 기본 곡선) */
+    transition: transform var(--motion-lift) var(--ease-editorial);
+  }
+  .vt-step-fade {
+    /* 사용자가 화살표를 눌러 한 칸 넘기는 사진 교차 = --motion-step(값 0.5s — 종전
+       duration-500 과 같고, 곡선만 ease-in-out → --ease-editorial) */
+    transition: opacity var(--motion-step) var(--ease-editorial);
+  }
+  .vt-tint-fade {
+    /* 투명도만 바뀌는 화살표 버튼 hover(종전 Tailwind 기본 150ms) */
+    transition: opacity var(--motion-tint) var(--ease-editorial);
+  }
+  /* ⑤ 후기 슬라이더 좌우 화살표(Tailwind 기본 150ms)는 일부러 그대로 두었다 —
+     tests/home-review-section-shared-slider 가 홈 ⑤ 화살표와 「한 벌」임을 클래스 문자열로
+     붙잡고 있어서, 이쪽만 토큰으로 옮기면 두 화면의 화살표가 갈라진다. 홈(⑤)과 함께
+     한 번에 옮겨야 하는 자리다(2026-09-04). */
+  .vt-tint-all {
+    /* 인디케이터 점(폭 1.5→6 + 색). 색만 바뀌는 히어로 dot·figure dot 과 같은 박자로 모았다
+       (종전 transition-all duration-300). */
+    transition:
+      width var(--motion-tint) var(--ease-editorial),
+      background-color var(--motion-tint) var(--ease-editorial);
+  }
+  .hh-stat {
+    /* ③ 수치 셀 hover/focus 배경(종전 Tailwind 기본 150ms) */
+    transition: background-color var(--motion-tint) var(--ease-editorial);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vt-nudge,
+    .vt-step-fade,
+    .vt-tint-fade,
+    .vt-tint-all,
+    .hh-stat {
+      transition: none;
+    }
+  }
+  /* ⑤ 모바일 전용 슬라이더 CSS(.vt-slider 일대)는 삭제(검수 2026-08-11 — 크롤러 이중 렌더
+     제거) — 후기가 공용 ReviewSlider 한 벌이 되며 소비처가 0이 됐다(no-JS 폴백도 그쪽 내장). */
+  :global(html.vhseq-on) .vt-cover {
+    margin-top: -100vh;
+    margin-top: -100svh;
+  }
+
+  /* ── 모바일 타이포 위계(원장 지시 2026-07-23 B-3·B-4) ──────────────
+     기준 = 섹션2 메인카피(clamp(1.5rem,1rem+2.8vw,3.25rem)·semibold).
+     전 섹션 메인카피(vt-mtitle)를 이 기준으로 통일한다.
+     ※ 굵기 700 → 600(원장 지시 2026-08-07 "이 페이지 bold 전부 semibold") —
+       마크업 쪽 font-bold 를 전부 font-semibold 로 내렸으므로 이 규칙도 함께 내려야
+       모바일에서만 다시 700 으로 덮이는 일이 없다.
+     ※ 섹션4 블록 제목(.vt4-btitle)과 PC용 .sec-title.vt-mtitle-lg 오버라이드는 2026-08-03
+       Specialty 통합에서 제거했다 — 두 규칙 모두 소비처가 옛 모바일 ④ 블록 하나뿐이었고,
+       그 블록이 사라지며 매칭되는 요소가 0이 됐다(현 ④ 제목은 유틸리티로 직접 지정). */
+  @media (max-width: 767px) {
+    .vt-mtitle {
+      font-size: clamp(1.5rem, 1rem + 2.8vw, 3.25rem);
+      font-weight: 600;
+      line-height: 1.45;
+      letter-spacing: -0.02em;
+    }
+    /* vt-mtitle-lg — 섹션3 제목만 기준 clamp ×1.15 확대(원장 지시 2026-07-28 3-1).
+       .vt-mtitle 공통 규칙은 그대로 두고 이 한 곳만 덮어씀 — 다른 섹션 제목 크기 불변 */
+    .vt-mtitle-lg {
+      font-size: clamp(1.725rem, 1.15rem + 3.22vw, 3.74rem);
+    }
+  }
+
+  /* ── 모바일 스크롤 등장(원장 지시 2026-07-23 B-2·B-4) — 페이드인+살짝 위로.
+     JS가 html.vt-reveal-on을 켠 경우에만 초기 숨김(no-JS 안전),
+     reduced-motion은 JS에서 아예 켜지 않음 → 정적 표시. PC는 현재 상태 유지. ── */
+  @media (max-width: 767px) {
+    :global(html.vt-reveal-on) [data-vt-reveal] {
+      opacity: 0;
+      transform: translateY(18px);
+      /* 스크롤 등장(reveal)의 정본은 --editorial-reveal-duration(700ms) — 종전 0.65s 는
+         근거 없는 50ms 차이였다(원장 지시 2026-09-04 「값 일관성」). 거리 18px 은 모바일
+         고유값이라 그대로 두고, 위 §4 블록의 0.8s 는 「한 박자 길게」가 주석에 명시돼 있어
+         일부러 남겼다. */
+      transition:
+        opacity var(--editorial-reveal-duration) var(--ease-editorial),
+        transform var(--editorial-reveal-duration) var(--ease-editorial);
+    }
+    :global(html.vt-reveal-on) [data-vt-reveal].is-in {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .vt-guide {
+    background: #eef5f8;
+    color: var(--color-ink);
+  }
+  .vt-guide-inner {
+    display: grid;
+    grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
+    gap: clamp(4rem, 9vw, 9rem);
+    padding-block: 140px;
+  }
+  .vt-guide-head { align-self: start; position: sticky; top: calc(var(--header-h) + 5.5rem); }
+  .vt-guide-kicker { color: #3f6f90; font-size: 20px; font-weight: 600; line-height: 28px; }
+  .vt-guide-head .vt-added-title { color: #365f78; }
+  .vt-guide-head h2 { margin-top: 14px; font-size: clamp(36px, 3.6vw, 52px); font-weight: 600; line-height: 1.3; letter-spacing: -.025em; }
+  .vt-guide-head > p:not(.vt-guide-kicker, .vt-guide-note) { margin-top: 34px; max-width: 31rem; font-size: 17px; line-height: 2; }
+  .vt-guide-note { margin-top: 22px; max-width: 31rem; color: #66727a; font-size: 14px; line-height: 1.8; }
+  .vt-guide-list { border-top: 1px solid rgba(41, 42, 43, .28); }
+  .vt-guide-list li { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 22px; align-items: start; padding-block: 30px; border-bottom: 1px solid rgba(41, 42, 43, .28); transition-delay: var(--vt-guide-delay, 0ms); }
+  .vt-guide-no { padding-top: 4px; color: #3f6f90; font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+  .vt-guide-list h3 { font-size: 21px; font-weight: 600; line-height: 1.5; letter-spacing: -.015em; }
+  .vt-guide-list p { margin-top: 9px; color: #59636a; font-size: 15px; line-height: 1.8; word-break: keep-all; }
+  .vt-guide-list a { display: inline-flex; gap: 10px; align-items: center; margin-top: 4px; color: #365f78; font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .vt-guide-list a:hover span:first-child,
+  .vt-guide-list a:focus-visible span:first-child { text-decoration: underline; text-underline-offset: 5px; }
+  @media (max-width: 767px) {
+    .vt-guide-inner { grid-template-columns: 1fr; gap: 52px; padding-block: 84px; }
+    .vt-guide-head { position: static; }
+    .vt-guide-kicker { font-size: 17px; line-height: 25px; }
+    .vt-guide-head h2 { margin-top: 10px; font-size: 32px; line-height: 1.42; }
+    .vt-guide-head > p:not(.vt-guide-kicker, .vt-guide-note) { margin-top: 24px; font-size: 16px; line-height: 1.85; }
+    .vt-guide-list li { grid-template-columns: 38px minmax(0, 1fr); gap: 14px; padding-block: 25px; }
+    .vt-guide-list h3 { font-size: 18px; }
+    .vt-guide-list a { grid-column: 2; margin-top: 8px; }
+  }
+</style>
+
+<script>
+  import { initResearchListIntent } from '../../../lib/researchListIntentClient';
+
+  initResearchListIntent();
+
+  // ── ④ Specialty — 스크립트 없음(2026-08-03 통합).
+  // 종전엔 여기서 섹션 핀 + 01→03 단계 스냅(initWheelSnap 별도 인스턴스 · scroll/resize 리스너 ·
+  // stepPx/cur 상태)을 돌렸다. 원장 지시로 "밑으로 3장 이어지게"로 바뀌면서 전부 제거했다 —
+  // 등장 연출은 이 파일 맨 아래 공용 [data-vt-reveal] IO 하나로 충분하다.
+  // ⚠️ 이 페이지에서 initWheelSnap 을 쓰던 곳은 여기뿐이라 import 도 함께 지웠다.
+  //    히어로(VitiligoHero)의 마지막 슬라이드 → 섹션1 착지는 캐러셀 자신을 기준으로
+  //    계산하는 별개 로직(advanceToFirstSection)이라 이 삭제와 무관하다.
+
+  // ── ③ 카운트업 (3차 §4 강화) — 셀 단위 IO(threshold 0.35)로 "밴드가 실제로 보일 때"
+  // 시작 + rAF 스크롤 폴백(IO 미발화 환경 보험). 빠른 스크롤로 도착 전에 끝나 '미적용'처럼
+  // 보이던 문제를 지속시간 1.5s + 가시 시점 트리거로 해소. reduced-motion은 최종값 즉시.
+  {
+    const cells = Array.from(document.querySelectorAll<HTMLElement>('[data-count-cell]'));
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const run = (el: HTMLElement) => {
+      const target = parseInt(el.dataset.countTo || '0', 10);
+      if (reduce || !target) {
+        el.textContent = String(target);
+        return;
+      }
+      const myRun = String(Number(el.dataset.run || '0') + 1);
+      el.dataset.run = myRun;
+      const dur = 1500;
+      let start = 0;
+      const step = (now: number) => {
+        if (el.dataset.run !== myRun) return;
+        if (!start) start = now;
+        const p = Math.min((now - start) / dur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = String(Math.round(target * eased));
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    const runCell = (cell: HTMLElement) => {
+      if (cell.dataset.counted) return;
+      cell.dataset.counted = 'true';
+      cell.querySelectorAll<HTMLElement>('.hh-count').forEach(run);
+    };
+    cells.forEach((cell) =>
+      cell.querySelectorAll<HTMLElement>('.hh-count').forEach((n) => (n.textContent = '0')),
+    );
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(
+        (entries, obs) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              runCell(e.target as HTMLElement);
+              obs.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.35 },
+      );
+      cells.forEach((c) => io.observe(c));
+    }
+    // 폴백 — IO가 못 잡는 환경/타이밍에도 화면 안에 들어오면 반드시 발동.
+    // 전 셀 완료 시 리스너 자체 해제(enable/disable 정리 패턴과 일관 — 코드검수 반영)
+    let raf = 0;
+    const onFallbackScroll = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    const check = () => {
+      raf = 0;
+      cells.forEach((c) => {
+        if (c.dataset.counted) return;
+        const r = c.getBoundingClientRect();
+        if (r.top < window.innerHeight * 0.75 && r.bottom > 0) runCell(c);
+      });
+      if (cells.every((c) => c.dataset.counted))
+        window.removeEventListener('scroll', onFallbackScroll);
+    };
+    window.addEventListener('scroll', onFallbackScroll, { passive: true });
+    check();
+    // 클릭/키보드 — ① 카운트업 재생(기존 유지) ② 해당 수치의 배경사진으로 부드럽게 전환
+    // (원장 지시 2026-07-24 ② 2-B: 수치 i ↔ stats-0(i+1).jpg 매칭, reduced-motion은 즉시 전환)
+    const bgWrap = document.querySelector<HTMLElement>('[data-vstat-bg]');
+    const bgImgs = bgWrap
+      ? Array.from(bgWrap.querySelectorAll<HTMLImageElement>('[data-vstat-img]'))
+      : [];
+    const selectBg = (idx: number) => {
+      if (!bgWrap || bgImgs.length === 0) return;
+      const target = idx % bgImgs.length;
+      // 첫 선택 시 자동 크로스페이드(keyframes)를 내리고 수동 모드로 — opacity 트랜지션 전환.
+      // 여기부터는 '사용자가 눌러 한 칸 넘기는' 것이라 --motion-step 이다(종전 0.7s ease,
+      // 원장 지시 2026-09-04 「값 일관성」). 자동 순환의 XF_HOLD 5s·XF_FADE 1s 는 퍼센트가
+      // 거기서 계산되는 값이라 그대로 두었다 — 자동과 수동은 역할이 다르다.
+      if (!bgWrap.dataset.manual) {
+        bgWrap.dataset.manual = 'true';
+        bgImgs.forEach((img) => {
+          img.style.animation = 'none';
+          if (!reduce) img.style.transition = 'opacity var(--motion-step) var(--ease-editorial)';
+        });
+      }
+      // 0번은 바닥(항상 opacity 1) — 위층(1~)만 조절해 대상 사진이 보이게
+      bgImgs.forEach((img, i) => {
+        if (i === 0) return;
+        img.style.opacity = i === target ? '1' : '0';
+      });
+    };
+    const activate = (cell: HTMLElement) => {
+      cell.querySelectorAll<HTMLElement>('.hh-count').forEach((el) => {
+        el.textContent = '0';
+        run(el);
+      });
+      selectBg(parseInt(cell.dataset.statIndex || '0', 10));
+    };
+    cells.forEach((cell) => {
+      cell.addEventListener('click', () => activate(cell));
+      cell.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        activate(cell);
+      });
+    });
+  }
+
+  // ── ⑤ 후기 전용 슬라이더 스크립트는 삭제(검수 2026-08-11 — 크롤러 이중 렌더 제거).
+  //    PC·모바일이 공용 ReviewSlider 한 블록으로 합쳐져 슬라이더 동작(Swiper·자동 전환·
+  //    화살표·reduced-motion)은 그 컴포넌트 스크립트가 갖는다.
+  // ── ④-5 연구 활동 사진 — 사용자가 순서대로 직접 넘기는 크로스페이드.
+  // 자동 순환은 읽는 동안 움직임을 강제하고 별도 정지 제어가 필요하므로 사용하지 않는다.
+  document.querySelectorAll<HTMLElement>('[data-doctor-carousel]').forEach((root) => {
+    const slides = Array.from(root.querySelectorAll<HTMLImageElement>('[data-doctor-slide]'));
+    const dots = Array.from(root.querySelectorAll<HTMLElement>('[data-doctor-dot]'));
+    if (slides.length < 2) return;
+    const controls = Array.from(root.querySelectorAll<HTMLElement>('[data-doctor-controls]'));
+    const status = root.querySelector<HTMLElement>('[data-doctor-status]');
+    let cur = 0;
+    root.classList.remove('snap-x', 'snap-mandatory', 'overflow-x-auto');
+    root.classList.add('overflow-hidden');
+    slides.forEach((slide) => slide.classList.add('absolute', 'inset-0'));
+    controls.forEach((control) => { control.hidden = false; });
+
+    const show = (nextIdx: number, announce = true) => {
+      cur = (nextIdx + slides.length) % slides.length;
+      slides.forEach((s, i) => {
+        s.classList.toggle('opacity-100', i === cur);
+        s.classList.toggle('opacity-0', i !== cur);
+        if (i === cur) s.removeAttribute('aria-hidden');
+        else s.setAttribute('aria-hidden', 'true');
+      });
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('w-6', i === cur);
+        dot.classList.toggle('w-1.5', i !== cur);
+        dot.classList.toggle('bg-white', i === cur);
+        dot.classList.toggle('bg-white/55', i !== cur);
+      });
+      if (announce && status) status.textContent = `${cur + 1}/${slides.length} 사진: ${slides[cur]?.alt ?? ''}`;
+    };
+    show(0, false);
+    root.querySelector('[data-doctor-prev]')?.addEventListener('click', () => show(cur - 1));
+    root.querySelector('[data-doctor-next]')?.addEventListener('click', () => show(cur + 1));
+  });
+
+  // ── 모바일 스크롤 등장(2026-07-23 B-2·B-4) — 뷰포트 진입 시 순차 페이드인.
+  // reduced-motion·IO 미지원이면 클래스를 켜지 않아 정적 표시(CSS는 vt-reveal-on 한정).
+  {
+    const els = Array.from(document.querySelectorAll<HTMLElement>('[data-vt-reveal]'));
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (els.length && !reduce && 'IntersectionObserver' in window) {
+      document.documentElement.classList.add('vt-reveal-on');
+      const io = new IntersectionObserver(
+        (entries, obs) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add('is-in');
+              obs.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -6% 0px' },
+      );
+      els.forEach((el) => io.observe(el));
+    }
+  }
+</script>
